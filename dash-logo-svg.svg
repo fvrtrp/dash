@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="215" height="215" viewBox="0 0 215 215">
+  <defs>
+    <path id="path-1" fill-rule="evenodd" d="M10 0h195c5.51915024 0 10 4.48084976 10 10v195c0 5.51915024-4.48084976 10-10 10H10c-5.51915024 0-10-4.48084976-10-10V10C0 4.48084976 4.48084976 0 10 0z"/>
+    <linearGradient id="linearGradient-2" x1="4.3" x2="208.55" y1="8.6" y2="215" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="rgb(108,108,108)"/>
+      <stop offset="1" stop-color="rgb(255,255,255)"/>
+    </linearGradient>
+    <mask id="mask-3" x="0" y="0" maskContentUnits="userSpaceOnUse" maskUnits="userSpaceOnUse">
+      <rect width="215" height="215" x="0" y="0" fill="black"/>
+      <use fill="white" xlink:href="#path-1"/>
+    </mask>
+    <linearGradient id="linearGradient-5" x1="150.51" x2="205.88" y1="76.05" y2="75.3" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="rgb(255,95,88)"/>
+      <stop offset="1" stop-color="rgb(255,93,200)"/>
+    </linearGradient>
+  </defs>
+  <g>
+    <g>
+      <use fill="rgb(23,23,23)" xlink:href="#path-1"/>
+      <use fill-opacity="0" stroke="url(#linearGradient-2)" stroke-linecap="butt" stroke-linejoin="miter" stroke-width="20" mask="url(#mask-3)" xlink:href="#path-1"/>
+    </g>
+    <text font-size="0" style="white-space:pre">
+      <tspan x="21" y="103" fill="rgb(255,255,255)" font-family="Cormorant" font-size="100" font-weight="700" style="white-space:pre;text-transform:none" font-style="italic" letter-spacing="9.1">DA</tspan> <tspan x="21" y="178" fill="rgb(255,255,255)" font-family="Cormorant" font-size="100" font-weight="700" style="white-space:pre;text-transform:none" font-style="italic" letter-spacing="9.1">SH</tspan>
+    </text>
+    <path fill="url(#linearGradient-5)" fill-rule="evenodd" d="M154 66h43c1.65574507 0 3 1.34425493 3 3v9c0 1.65574507-1.34425493 3-3 3h-43c-1.65574507 0-3-1.34425493-3-3v-9c0-1.65574507 1.34425493-3 3-3z"/>
+  </g>
+</svg>
