@@ -29,6 +29,14 @@ function add_task() {
     renderTask(task)
 }
 
+function delete_task(id) {
+    tasks = tasks.filter(i => i.id!==id)
+    storage('update', {config: config, tasks: tasks})
+    const target = document.querySelector(`#task-${id}`)
+    target.classList.add('deleted')
+    setTimeout(()=>target.remove(), 500)
+}
+
 
 
 function storage(action, data) {
@@ -69,9 +77,17 @@ function renderTask(task) {
     const el = document.createElement('div')
     el.id = `task-${task.id}`
     el.className = 'taskItem'
+    const marker = document.createElement('div')
+    marker.className = 'taskMarker'
+    el.appendChild(marker)
     const title = document.createElement('div')
     title.innerHTML = task.val
     el.appendChild(title)
+    const del = document.createElement('div')
+    del.innerHTML = 'x'
+    del.className = "deleteTask"
+    del.addEventListener('click', () => delete_task(task.id))
+    el.appendChild(del)
 
     const container  = document.querySelector('#tasks')
     container.appendChild(el)
