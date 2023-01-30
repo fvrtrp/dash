@@ -1,5 +1,6 @@
-let tasks = [], config = {}
+let tasks = [], config = {theme: 'blues'}
 let userInput = document.querySelector("#userInput")
+let themeButtons = document.querySelectorAll('.theme-btn')
 const resultContainer = document.querySelector("#result")
 const errorContainer = document.querySelector("#error")
 
@@ -9,6 +10,13 @@ userInput.addEventListener('keypress', (event) => {
     if (event.key === "Enter") {
         add_task()
     }
+})
+themeButtons.forEach(btn => {
+    btn.addEventListener('click', (event) => {
+        const config = {theme: event.target.id}
+        applyConfig(config)
+        storage('update', {config: config, tasks: tasks})
+    })
 })
 
 function load_data() {
@@ -26,7 +34,7 @@ function add_task() {
     tasks.push(task)
     storage('update', {config: config, tasks: tasks})
     input.value = ''
-    renderTask(task)
+    renderTask(task, 'new')
 }
 
 function delete_task(id) {
@@ -66,6 +74,18 @@ function after_load(data) {
     tasks = data['tasks']
     config = data['config']
     renderTasks(tasks)
+    applyConfig(config)
+}
+
+function applyConfig(config) {
+    applyTheme(config.theme)
+}
+
+function applyTheme(theme) {
+    document.body.className = `theme-${theme}`
+    const themeButtons = document.querySelectorAll('.theme-btn')
+    themeButtons.forEach(i => i.classList.remove('active'))
+    document.querySelector(`#${theme}`).classList.add('active')
 }
 
 function renderTasks(tasks) {
@@ -73,12 +93,19 @@ function renderTasks(tasks) {
         renderTask(task)
 }
 
-function renderTask(task) {
+function renderTask(task, flag) {
     const el = document.createElement('div')
     el.id = `task-${task.id}`
     el.className = 'taskItem'
+    if(flag) {
+        el.classList.add('new')
+        setTimeout(()=>el.classList.remove('new'), 100)
+    }
     const marker = document.createElement('div')
     marker.className = 'taskMarker'
+    marker.innerHTML = `<svg height="8" width="8">
+    <circle cx="4" cy="4" r="3" stroke-width="2" fill="transparent" />
+  </svg>`
     el.appendChild(marker)
     const title = document.createElement('div')
     title.innerHTML = task.val

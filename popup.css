@@ -1,14 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=Jost:wght@400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Jost:wght@400;500&display=swap');
 body {
     height: 400px;
     width: 400px;
     overflow: scroll;
     background: black;
     color: white;
-    border-radius: 6px;
     background-size: cover;
     background-repeat: no-repeat;
     font-family: 'Jost', sans-serif;
+    background-position: center !important;
 }
 
 /* scrollbar */
@@ -49,14 +49,13 @@ input {
     width: 80%;
     /* margin: 0 20px; */
     box-sizing: border-box;
-    border-radius: 5px;
     outline: none;
-    background: black;
+    background: rgba(0, 0, 0, 0.2);
     color: #fff;
     font-size: 14px;
     padding: 10px 20px;
-    border-radius: 20px;
-    border: 1px solid #FF5F58;
+    border: none;
+    border-radius: 10px;
     font-family: 'Jost', sans-serif;
     margin-left: 40px;
     margin-bottom: 25px;
@@ -87,7 +86,7 @@ a{
 }
 #tasks {
     min-height: 200px;
-    max-height: 300px;
+    max-height: 350px;
     overflow-y: scroll;
     overflow-x: hidden;
 }
@@ -98,37 +97,60 @@ a{
     position: relative;
     transition: height 0.4s, padding 0.4s;
     overflow: hidden;
-    padding: 5px 10px;
-    width: calc(100% - 50px);
+    padding: 5px 50px 5px 10px;
+    border-radius: 5px;
+    width: 100%;
     box-sizing: border-box;
     height: 40px;
     display: flex;
     align-items: center;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+.taskItem:hover {
+    background: rgb(0, 0, 0, 0.4);
+    color: white;
 }
 .taskMarker {
     width: 6px;
     height: 6px;
-    border: 2px solid #24FF43;
-    border-radius: 50%;
+    stroke: #24FF43;
+    /* border-radius: 50%; */
+    border: none;
     margin-right: 20px;
-    margin-top: 2px;
+    margin-top: -14px;
     transition: all 0.4s;
 }
+.taskItem:hover .taskMarker circle {
+    stroke-dasharray: 227;
+    stroke-dashoffset: 0;
+    animation-iteration-count: 1;
+    animation-name: rotate;
+    animation-duration: 6s;
+    animation-direction: reverse;
+    animation-timing-function: linear;
+}
+@keyframes rotate {
+    to {
+      stroke-dashoffset: 227;
+    }
+  }
 .deleteTask {
     position: absolute;
-    right: 0;
-    top: 10px;
+    right: 20px;
+    top: 5px;
+    padding: 5px 10px;
     cursor: pointer;
     opacity: 0.3;
     transition: opacity 0.4s;
 }
-.taskItem:hover .taskMarker {
-    border-color: #ffc116;
-}
+/* .taskItem:hover .taskMarker circle{
+    stroke: #ffc116;
+} */
 .taskItem:hover .deleteTask{
     opacity: 1;
 }
-.deleted {
+.deleted, .new {
     height: 0;
     padding: 0 10px;
 }
@@ -144,4 +166,21 @@ a{
     right: 20px;
     letter-spacing: 6px;
     text-transform: uppercase;
+}
+.themes {
+    position: fixed;
+    bottom: 5px;
+    left: 15px;
+    display: flex;
+}
+.theme-btn {
+    width: 10px;
+    height: 10px;
+    border-radius: 10px;
+    margin: 0 5px;
+    border: solid 1px black;
+    cursor: pointer;
+}
+.theme-btn.active {
+    border-color: white;
 }
