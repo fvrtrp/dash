@@ -45,7 +45,7 @@ body {
     font-size: 10px;
     margin-bottom: 50px;
 }
-input {
+input#userInput {
     width: 80%;
     /* margin: 0 20px; */
     box-sizing: border-box;
@@ -104,12 +104,21 @@ a{
     height: 40px;
     display: flex;
     align-items: center;
-    transition: all 0.2s;
+    transition: all 0.1s;
     font-size: 14px;
 }
 .taskItem:hover {
     background: rgb(0, 0, 0, 0.4);
     color: white;
+}
+.taskItem input {
+    width: 100%;
+    background: none;
+    color: inherit;
+    outline: none;
+    border: none;
+    max-width: 100%;
+    text-overflow: ellipsis;
 }
 .taskMarker {
     width: 6px;
@@ -120,6 +129,7 @@ a{
     margin-right: 20px;
     margin-top: -14px;
     transition: all 0.4s;
+    cursor: pointer;
 }
 .taskItem:hover .taskMarker circle {
     stroke-dasharray: 227;
@@ -160,11 +170,11 @@ a{
 }
 .attribution {
     color: white;
-    font-size: 10px;
+    font-size: 6px;
     position: fixed;
     bottom: 5px;
-    right: 20px;
-    letter-spacing: 6px;
+    right: 15px;
+    letter-spacing: 4px;
     text-transform: uppercase;
 }
 .themes {

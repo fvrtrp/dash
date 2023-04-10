@@ -37,6 +37,13 @@ function add_task() {
     renderTask(task, 'new')
 }
 
+function edit_task(id, value) {
+    for(let task of tasks) {
+        if(task.id===id) task.val = value
+    }
+    storage('update', {config: config, tasks: tasks})
+}
+
 function delete_task(id) {
     tasks = tasks.filter(i => i.id!==id)
     storage('update', {config: config, tasks: tasks})
@@ -50,7 +57,7 @@ function delete_task(id) {
 function storage(action, data) {
     switch(action) {
         case 'read': {
-            chrome.storage.local.get(['dash-todo'], function(data) {
+            chrome.storage.sync.get(['dash-todo'], function(data) {
                 if(!data || Object.keys(data).length===0) data = {
                     tasks: tasks, config: config
                 }
@@ -62,7 +69,7 @@ function storage(action, data) {
             break
         }
         case 'update': {
-            chrome.storage.local.set({'dash-todo': data}, function() {
+            chrome.storage.sync.set({'dash-todo': data}, function() {
                 console.log('Value is set to ' + data)
             })
             break
@@ -106,9 +113,12 @@ function renderTask(task, flag) {
     marker.innerHTML = `<svg height="8" width="8">
     <circle cx="4" cy="4" r="3" stroke-width="2" fill="transparent" />
   </svg>`
+    marker.addEventListener('click', () => delete_task(task.id))
     el.appendChild(marker)
-    const title = document.createElement('div')
-    title.innerHTML = task.val
+    const title = document.createElement('input')
+    title.value = task.val
+    title.setAttribute('placeholder', '...')
+    title.addEventListener('change', (e) => edit_task(task.id, event.target.value))
     el.appendChild(title)
     const del = document.createElement('div')
     del.innerHTML = 'x'

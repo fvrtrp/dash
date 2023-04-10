@@ -22,7 +22,6 @@
 /* light themes */
 .theme-mint, .theme-sunset {
     color: black;
-    font-weight: 500;
 }
 .theme-mint  .appName, .theme-mint a, .theme-mint attribution,
 .theme-sunset  .appName, .theme-sunset a, .theme-sunset attribution {
