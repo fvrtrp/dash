@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Jost:wght@400;500&display=swap');
+
 body {
     height: 400px;
     width: 400px;
@@ -15,24 +16,24 @@ body {
 /* width */
 ::-webkit-scrollbar {
     width: 10px;
-  }
-  
-  /* Track */
-  ::-webkit-scrollbar-track {
-    box-shadow: inset 0 0 5px grey; 
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    box-shadow: inset 0 0 5px grey;
     border-radius: 4px;
-  }
-   
-  /* Handle */
-  ::-webkit-scrollbar-thumb {
-    background: rgb(36, 36, 36); 
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: rgb(36, 36, 36);
     border-radius: 4px;
-  }
-  
-  /* Handle on hover */
-  ::-webkit-scrollbar-thumb:hover {
-    background: #292929; 
-  }
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #292929;
+}
 
 .appName {
     color: white;
@@ -41,10 +42,12 @@ body {
     letter-spacing: 5px;
     margin-bottom: 25px;
 }
+
 .appDescription {
     font-size: 10px;
     margin-bottom: 50px;
 }
+
 input#userInput {
     width: 80%;
     /* margin: 0 20px; */
@@ -60,39 +63,57 @@ input#userInput {
     margin-left: 40px;
     margin-bottom: 25px;
 }
-::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
-    color: #fff;
-    opacity: 0.4; /* Firefox */
-}
-:-ms-input-placeholder { /* Internet Explorer 10-11 */
+
+textarea#userNotes {
+    background: rgba(0, 0, 0, 0.2);
     color: #fff;
 }
-::-ms-input-placeholder { /* Microsoft Edge */
+
+::placeholder {
+    /* Chrome, Firefox, Opera, Safari 10.1+ */
+    color: #fff;
+    opacity: 0.4;
+    /* Firefox */
+}
+
+:-ms-input-placeholder {
+    /* Internet Explorer 10-11 */
     color: #fff;
 }
-a{
+
+::-ms-input-placeholder {
+    /* Microsoft Edge */
+    color: #fff;
+}
+
+a {
     text-decoration: none;
     color: white;
 }
+
 #result {
     display: none;
     justify-content: center;
     padding: 50px;
     position: relative;
 }
+
 .instructions {
     position: absolute;
     top: 15px;
 }
+
 #tasks {
     min-height: 200px;
     max-height: 350px;
     overflow-y: scroll;
     overflow-x: hidden;
 }
+
 .space {
     height: 50px;
 }
+
 .taskItem {
     position: relative;
     transition: height 0.4s, padding 0.4s;
@@ -107,10 +128,12 @@ a{
     transition: all 0.1s;
     font-size: 14px;
 }
+
 .taskItem:hover {
     background: rgb(0, 0, 0, 0.4);
     color: white;
 }
+
 .taskItem input {
     width: 100%;
     background: none;
@@ -120,6 +143,7 @@ a{
     max-width: 100%;
     text-overflow: ellipsis;
 }
+
 .taskMarker {
     width: 6px;
     height: 6px;
@@ -131,6 +155,7 @@ a{
     transition: all 0.4s;
     cursor: pointer;
 }
+
 .taskItem:hover .taskMarker circle {
     stroke-dasharray: 227;
     stroke-dashoffset: 0;
@@ -140,11 +165,13 @@ a{
     animation-direction: reverse;
     animation-timing-function: linear;
 }
+
 @keyframes rotate {
     to {
-      stroke-dashoffset: 227;
+        stroke-dashoffset: 227;
     }
-  }
+}
+
 .deleteTask {
     position: absolute;
     right: 20px;
@@ -154,20 +181,22 @@ a{
     opacity: 0.3;
     transition: opacity 0.4s;
 }
+
 /* .taskItem:hover .taskMarker circle{
     stroke: #ffc116;
 } */
-.taskItem:hover .deleteTask{
+.taskItem:hover .deleteTask {
     opacity: 1;
 }
-.deleted, .new {
+
+.deleted,
+.new {
     height: 0;
     padding: 0 10px;
 }
 
-.error {
+.error {}
 
-}
 .attribution {
     color: white;
     font-size: 6px;
@@ -177,12 +206,14 @@ a{
     letter-spacing: 4px;
     text-transform: uppercase;
 }
+
 .themes {
     position: fixed;
     bottom: 5px;
     left: 15px;
     display: flex;
 }
+
 .theme-btn {
     width: 10px;
     height: 10px;
@@ -191,6 +222,14 @@ a{
     border: solid 1px black;
     cursor: pointer;
 }
+
 .theme-btn.active {
     border-color: white;
+}
+
+#mode-toggle {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    cursor: pointer;
 }

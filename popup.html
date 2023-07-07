@@ -1,27 +1,33 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <link rel="stylesheet" href="index.css">
-  </head>
-  <body class="theme-blues">
-    <a href="https://chrome.google.com/webstore/detail/dash-transient-todo-app/ljheneifbckpafceajjbbbimiknkaeib" target="_blank">
-        <div class="appName">DASH</div>
-        <!-- <div class="appDescription">Transient Todo app</div> -->
-    </a>
-    <input
-        id="userInput"
-        placeholder="Ex: Check mail"
-        autofocus
-    />
+
+<head>
+  <link rel="stylesheet" href="index.css">
+</head>
+
+<body class="theme-blues">
+  <a href="https://chrome.google.com/webstore/detail/dash-transient-todo-app/ljheneifbckpafceajjbbbimiknkaeib"
+    target="_blank">
+    <div class="appName">DASH</div>
+    <!-- <div class="appDescription">Transient Todo app</div> -->
+  </a>
+  <div id="tasksContainer">
+    <input id="userInput" placeholder="Ex: Check mail" autofocus />
     <div id="tasks"></div>
-    <div class="space"></div>
-    <a class="attribution" href="https://surajk95.github.io/" target="_blank" title="attribution">ABOUT</a>
-    <div class="themes">
-      <div class="theme-btn" id="blues"></div>
-      <div class="theme-btn" id="mint"></div>
-      <div class="theme-btn" id="sunset"></div>
-      <div class="theme-btn" id="dark"></div>
-    </div>
-    <script src="popup.js"></script>
-  </body>
+  </div>
+  <div id="notesContainer">
+    <textarea id="userNotes" placeholder="Write anything." autofocus></textarea>
+  </div>
+  <div class="space"></div>
+  <a class="attribution" href="https://surajk95.github.io/" target="_blank" title="attribution">ABOUT</a>
+  <div class="themes">
+    <div class="theme-btn" id="blues"></div>
+    <div class="theme-btn" id="mint"></div>
+    <div class="theme-btn" id="sunset"></div>
+    <div class="theme-btn" id="dark"></div>
+  </div>
+  <div id="mode-toggle">switch mode</div>
+  <script src="popup.js"></script>
+</body>
+
 </html>
