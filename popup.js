@@ -31,16 +31,14 @@ function add_eventlisteners() {
             add_task()
         }
     })
-    userNotes.addEventListener('keypress', (event) => {
-        if (event.key === "Enter") {
-            save_notes()
-        }
+    userNotes.addEventListener('input', (event) => {
+        save_notes()
     })
     themeButtons.forEach(btn => {
         btn.addEventListener('click', (event) => {
             const config = { theme: event.target.id }
             applyConfig(config, mode)
-            storage('update', { config: config, tasks: tasks })
+            storage('update', { config: config, tasks: tasks, notes: notes })
         })
     })
     modeToggle.addEventListener('click', () => {
@@ -57,7 +55,7 @@ function add_task() {
         id: tasks.length === 0 ? 0 : tasks[tasks.length - 1]['id'] + 1
     }
     tasks.push(task)
-    storage('update', { config: config, tasks: tasks })
+    storage('update', { config: config, tasks: tasks, notes: notes })
     input.value = ''
     renderTask(task, 'new')
 }
@@ -66,12 +64,12 @@ function edit_task(id, value) {
     for (let task of tasks) {
         if (task.id === id) task.val = value
     }
-    storage('update', { config: config, tasks: tasks })
+    storage('update', { config: config, tasks: tasks, notes: notes })
 }
 
 function delete_task(id) {
     tasks = tasks.filter(i => i.id !== id)
-    storage('update', { config: config, tasks: tasks })
+    storage('update', { config: config, tasks: tasks, notes: notes })
     const target = document.querySelector(`#task-${id}`)
     target.classList.add('deleted')
     setTimeout(() => target.remove(), 500)
@@ -81,13 +79,14 @@ function save_notes() {
     const input = document.querySelector('#userNotes')
     const val = input.value
     if (!val) val = ''
-    storage('update', { config: config, tasks: tasks, notes: notes })
+    console.log(`zzz`, val)
+    storage('update', { config: config, tasks: tasks, notes: val })
 }
 
 function switch_mode(value) {
     mode = value
     applyMode(value)
-    storage('mode', value)
+    storage('update-mode', value)
 }
 
 
@@ -96,14 +95,20 @@ function storage(action, data) {
     switch (action) {
         case 'read': {
             chrome.storage.sync.get(['dash-todo'], function (data) {
+                console.log(`after read`, data)
                 if (!data || Object.keys(data).length === 0) data = {
-                    tasks: tasks, config: config, mode: mode
+                    tasks: tasks, config: config, notes: notes
                 }
                 else {
-                    data = data['dash-todo'], mode = data['dash-mode']
-                    if (!mode) mode = 'tasks'
+                    data = data['dash-todo']
                 }
-                after_load(data, mode)
+                after_load(data)
+            })
+            chrome.storage.sync.get(['dash-mode'], function (data) {
+                console.log(`reading mode`, data)
+                if (!data || Object.keys(data).length === 0) mode = 'tasks'
+                else mode = data['dash-mode']
+                applyMode(mode)
             })
             break
         }
@@ -113,7 +118,7 @@ function storage(action, data) {
             })
             break
         }
-        case 'mode': {
+        case 'update-mode': {
             chrome.storage.sync.set({ 'dash-mode': data }, function () {
                 console.log('Mode is set to ' + data)
             })
@@ -122,25 +127,30 @@ function storage(action, data) {
     }
 }
 
-function after_load(data, mode) {
+function after_load(data) {
     tasks = data['tasks']
     config = data['config']
+    notes = data['notes']
     renderTasks(tasks)
-    applyConfig(config, mode)
+    renderNotes(notes)
+    applyConfig(config)
 }
 
-function applyConfig(config, mode) {
+function applyConfig(config) {
     applyTheme(config.theme)
-    applyMode(mode)
 }
 
 function applyMode(mode) {
     reset()
     if (mode === 'tasks') {
-        tasksContainer.style.display = 'block';
+        tasksContainer.style.display = 'block'
+        modeToggle.innerText = 'Switch to notes'
+        document.body.style.width = '400px'
     }
     else if (mode === 'notes') {
-        notesContainer.style.display = 'block';
+        notesContainer.style.display = 'block'
+        modeToggle.innerText = 'Switch to tasks'
+        document.body.style.width = '700px'
     }
 }
 
@@ -184,4 +194,8 @@ function renderTask(task, flag) {
 
     const container = document.querySelector('#tasks')
     container.appendChild(el)
+}
+
+function renderNotes(data) {
+    userNotes.value = data
 }
