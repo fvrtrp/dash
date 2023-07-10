@@ -10,6 +10,7 @@ body {
     background-repeat: no-repeat;
     font-family: 'Jost', sans-serif;
     background-position: center !important;
+    transition: width 0.1s ease-in-out;
 }
 
 /* scrollbar */

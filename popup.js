@@ -79,7 +79,6 @@ function save_notes() {
     const input = document.querySelector('#userNotes')
     const val = input.value
     if (!val) val = ''
-    console.log(`zzz`, val)
     storage('update', { config: config, tasks: tasks, notes: val })
 }
 
@@ -95,7 +94,6 @@ function storage(action, data) {
     switch (action) {
         case 'read': {
             chrome.storage.sync.get(['dash-todo'], function (data) {
-                console.log(`after read`, data)
                 if (!data || Object.keys(data).length === 0) data = {
                     tasks: tasks, config: config, notes: notes
                 }
@@ -105,7 +103,6 @@ function storage(action, data) {
                 after_load(data)
             })
             chrome.storage.sync.get(['dash-mode'], function (data) {
-                console.log(`reading mode`, data)
                 if (!data || Object.keys(data).length === 0) mode = 'tasks'
                 else mode = data['dash-mode']
                 applyMode(mode)
@@ -114,13 +111,13 @@ function storage(action, data) {
         }
         case 'update': {
             chrome.storage.sync.set({ 'dash-todo': data }, function () {
-                console.log('Value is set to ' + data)
+                // console.log('Value is set to ' + data)
             })
             break
         }
         case 'update-mode': {
             chrome.storage.sync.set({ 'dash-mode': data }, function () {
-                console.log('Mode is set to ' + data)
+                // console.log('Mode is set to ' + data)
             })
             break
         }
@@ -144,11 +141,13 @@ function applyMode(mode) {
     reset()
     if (mode === 'tasks') {
         tasksContainer.style.display = 'block'
+        userInput.focus()
         modeToggle.innerText = 'Switch to notes'
         document.body.style.width = '400px'
     }
     else if (mode === 'notes') {
         notesContainer.style.display = 'block'
+        userNotes.focus()
         modeToggle.innerText = 'Switch to tasks'
         document.body.style.width = '700px'
     }
