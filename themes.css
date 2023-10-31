@@ -1,31 +1,5 @@
 .theme-blues {
-    background: url('backgrounds/blues.svg');
-}
-.theme-dark {
-    background: url('backgrounds/dark.svg');
-}
-.theme-mint {
-    background: url('backgrounds/mint.svg');
-}
-.theme-sunset {
-    background: url('backgrounds/sunset.svg');
-}
-/* dark themes */
-.theme-blues, .theme-dark {
-    color: white; 
-}
-.theme-blues  .appName, .theme-blues a, .theme-blues attribution,
-.theme-dark  .appName, .theme-dark a, .theme-dark attribution {
-    color: white;
-}
-
-/* light themes */
-.theme-mint, .theme-sunset {
-    color: black;
-}
-.theme-mint  .appName, .theme-mint a, .theme-mint attribution,
-.theme-sunset  .appName, .theme-sunset a, .theme-sunset attribution {
-    color: black;
+    background: radial-gradient(#A533FF, #4933FF 50%);
 }
 
 /* marker */
@@ -35,31 +9,7 @@
 .theme-dark .taskMarker circle {
     stroke: #24FF43;
 }
-.theme-mint .taskMarker circle {
-    stroke: #FFF89A;
-}
-.theme-sunset .taskMarker circle {
-    stroke: #FFF89A;
-}
-/* .theme-blues .taskItem:hover .taskMarker circle {
-    fill: #FFA5BC;
-}
-.theme-dark .taskItem:hover .taskMarker circle {
-    fill: #24FF43;
-}
-.theme-mint .taskItem:hover .taskMarker circle {
-    fill: #FFF89A;
-}
-.theme-sunset .taskItem:hover .taskMarker circle {
-    fill: #FFF89A;
-} */
 
-.theme-btn#mint {
-    background: #2FBDB9;
-}
-.theme-btn#mint:hover {
-    background: #66FF88;
-}
 .theme-btn#blues {
     background: #4933FF;
 }
@@ -71,10 +21,4 @@
 }
 .theme-btn#dark:hover {
     background: #333333;
-}
-.theme-btn#sunset {
-    background: #FF6F50;
-}
-.theme-btn#sunset:hover {
-    background: #FFA133;
 }
