@@ -185,9 +185,6 @@ function renderTask(task, flag) {
     }
     const marker = document.createElement('div')
     marker.className = 'taskMarker'
-    marker.innerHTML = `<svg height="8" width="8">
-    <circle cx="4" cy="4" r="3" stroke-width="2" fill="transparent" />
-  </svg>`
     marker.addEventListener('click', () => delete_task(task.id))
     el.appendChild(marker)
     const title = document.createElement('input')
