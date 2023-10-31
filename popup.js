@@ -25,14 +25,6 @@ function load_data() {
     storage('read')
 }
 
-function debounce(func, timeout = 1000) {
-    let timer;
-    return (...args) => {
-        clearTimeout(timer);
-        timer = setTimeout(() => { func.apply(this, args) }, timeout);
-    };
-}
-
 function add_eventlisteners() {
     userInput.addEventListener('keypress', (event) => {
         if (event.key === "Enter") {
@@ -40,7 +32,7 @@ function add_eventlisteners() {
         }
     })
     userNotes.addEventListener('input', () => {
-        save_notes_debounce()
+        save_notes()
     })
     themeButtons.forEach(btn => {
         btn.addEventListener('click', (event) => {
@@ -53,8 +45,6 @@ function add_eventlisteners() {
         switch_mode(mode === 'notes' ? 'tasks' : 'notes')
     })
 }
-
-const save_notes_debounce = debounce(() => save_notes())
 
 function add_task() {
     const input = document.querySelector('#userInput')
