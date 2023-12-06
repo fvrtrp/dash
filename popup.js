@@ -85,7 +85,7 @@ function add_task() {
         id: tasks.length === 0 ? 0 : tasks[tasks.length - 1]['id'] + 1
     }
     tasks.push(task)
-    storage('update', { config: config, tasks: tasks, notes: notes })
+    storage('update-todo', tasks)
     input.value = ''
     renderTask(task, 'new')
 }
@@ -94,12 +94,12 @@ function edit_task(id, value) {
     for (let task of tasks) {
         if (task.id === id) task.val = value
     }
-    storage('update', { config: config, tasks: tasks, notes: notes })
+    storage('update-todo', tasks)
 }
 
 function delete_task(id) {
     tasks = tasks.filter(i => i.id !== id)
-    storage('update', { config: config, tasks: tasks, notes: notes })
+    storage('update-todo', tasks)
     const target = document.querySelector(`#task-${id}`)
     target.classList.add('deleted')
     setTimeout(() => target.remove(), 500)
@@ -127,21 +127,20 @@ function storage(action, data) {
         case 'read': {
             //read config, tasks, notes
             chrome.storage.sync.get(['dash-config'], function (data) {
-                console.log(`zzz read config`, data, !!data, Object.keys(data))
                 if (!data || Object.keys(data).length === 0);
                 else config = data['dash-config']
                 applyConfig()
             })
 
-            // chrome.storage.sync.get(['dash-todo'], function (data) {
-            //     if (!data || Object.keys(data).length === 0) data = {
-            //         tasks: tasks, config: config, notes: notes
-            //     }
-            //     else {
-            //         data = data['dash-todo']
-            //     }
-            //     after_load(data)
-            // })
+            chrome.storage.sync.get(['dash-todo'], function (data) {
+                if (!data || Object.keys(data).length === 0);
+                else {
+                    tasks = data['dash-todo']
+                }
+                // after_load(data)
+                renderTasks()
+            })
+
             // chrome.storage.sync.get(['dash-mode'], function (data) {
             //     if (!data || Object.keys(data).length === 0) mode = 'tasks'
             //     else mode = data['dash-mode']
@@ -214,7 +213,7 @@ function applyActiveNote() {
     renderNotes(notes[config[noteId]])
 }
 
-function renderTasks(tasks) {
+function renderTasks() {
     for (let task of tasks)
         renderTask(task)
 }
