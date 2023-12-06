@@ -1,4 +1,32 @@
-let tasks = [], config = { theme: 'blues' }, notes = '', mode = 'notes'
+let tasks = [], notes = {}
+let config = {
+    theme: 'blues',
+    mode: 'tasks',
+    noteId: 0,
+}
+const defaultFolders = {
+    0: {
+        name: 'default',
+        value: ''
+    },
+    1: {
+        name: 'note 2',
+        value: ''
+    },
+    2: {
+        name: 'note 3',
+        value: ''
+    },
+    3: {
+        name: 'note 4',
+        value: ''
+    },
+    4: {
+        name: 'note 5',
+        value: ''
+    },
+}
+
 let userInput = document.querySelector("#userInput")
 let userNotes = document.querySelector("#userNotes")
 const tasksContainer = document.querySelector('#tasksContainer')
@@ -36,13 +64,15 @@ function add_eventlisteners() {
     })
     themeButtons.forEach(btn => {
         btn.addEventListener('click', (event) => {
-            const config = { theme: event.target.id }
-            applyConfig(config, mode)
-            storage('update', { config: config, tasks: tasks, notes: notes })
+            config = Object.assign(config, {theme: event.target.id })
+            applyConfig()
+            storage('update-config', config)
         })
     })
     modeToggle.addEventListener('click', () => {
-        switch_mode(mode === 'notes' ? 'tasks' : 'notes')
+        config = Object.assign(config, {mode: config.mode === 'notes' ? 'tasks' : 'notes'})
+        applyConfig()
+        storage('update-config', config)
     })
 }
 
@@ -83,9 +113,11 @@ function save_notes() {
 }
 
 function switch_mode(value) {
-    mode = value
+    config.mode = value
     applyMode(value)
-    storage('update-mode', value)
+    storage('update-config', Object.assign(
+        config, { mode: value }
+    ))
 }
 
 
@@ -93,31 +125,47 @@ function switch_mode(value) {
 function storage(action, data) {
     switch (action) {
         case 'read': {
-            chrome.storage.sync.get(['dash-todo'], function (data) {
-                if (!data || Object.keys(data).length === 0) data = {
-                    tasks: tasks, config: config, notes: notes
-                }
-                else {
-                    data = data['dash-todo']
-                }
-                after_load(data)
+            //read config, tasks, notes
+            chrome.storage.sync.get(['dash-config'], function (data) {
+                console.log(`zzz read config`, data, !!data, Object.keys(data))
+                if (!data || Object.keys(data).length === 0);
+                else config = data['dash-config']
+                applyConfig()
             })
-            chrome.storage.sync.get(['dash-mode'], function (data) {
-                if (!data || Object.keys(data).length === 0) mode = 'tasks'
-                else mode = data['dash-mode']
-                applyMode(mode)
-            })
+
+            // chrome.storage.sync.get(['dash-todo'], function (data) {
+            //     if (!data || Object.keys(data).length === 0) data = {
+            //         tasks: tasks, config: config, notes: notes
+            //     }
+            //     else {
+            //         data = data['dash-todo']
+            //     }
+            //     after_load(data)
+            // })
+            // chrome.storage.sync.get(['dash-mode'], function (data) {
+            //     if (!data || Object.keys(data).length === 0) mode = 'tasks'
+            //     else mode = data['dash-mode']
+            //     applyMode(mode)
+            // })
             break
         }
-        case 'update': {
+        //update config, tasks, notes
+
+        case 'update-todo': {
             chrome.storage.sync.set({ 'dash-todo': data }, function () {
-                // console.log('Value is set to ' + data)
+                console.log('Value is set to ' + data)
             })
             break
         }
-        case 'update-mode': {
-            chrome.storage.sync.set({ 'dash-mode': data }, function () {
-                // console.log('Mode is set to ' + data)
+        case 'update-notes': {
+            chrome.storage.sync.set({ [`dash-notes-${data.id}`]: data.value }, function () {
+                console.log('Value is set to ' + data)
+            })
+            break
+        }
+        case 'update-config': {
+            chrome.storage.sync.set({ 'dash-config': data }, function () {
+                console.log('Mode is set to ' + data)
             })
             break
         }
@@ -133,8 +181,10 @@ function after_load(data) {
     applyConfig(config)
 }
 
-function applyConfig(config) {
+function applyConfig() {
     applyTheme(config.theme)
+    applyMode(config.mode)
+    // applyActiveNote(config.noteId)
 }
 
 function applyMode(mode) {
@@ -158,6 +208,10 @@ function applyTheme(theme) {
     const themeButtons = document.querySelectorAll('.theme-btn')
     themeButtons.forEach(i => i.classList.remove('active'))
     document.querySelector(`#${theme}`).classList.add('active')
+}
+
+function applyActiveNote() {
+    renderNotes(notes[config[noteId]])
 }
 
 function renderTasks(tasks) {
