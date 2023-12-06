@@ -4,7 +4,7 @@ let config = {
     mode: 'tasks',
     noteId: 0,
 }
-const defaultFolders = {
+const defaultNotes = {
     0: {
         name: 'default',
         value: ''
@@ -109,17 +109,9 @@ function save_notes() {
     const input = document.querySelector('#userNotes')
     const val = input.value
     if (!val) val = ''
-    storage('update', { config: config, tasks: tasks, notes: val })
+    notes[config.noteId].value = val
+    storage('update-notes', notes[config.noteId])
 }
-
-function switch_mode(value) {
-    config.mode = value
-    applyMode(value)
-    storage('update-config', Object.assign(
-        config, { mode: value }
-    ))
-}
-
 
 
 function storage(action, data) {
@@ -127,6 +119,7 @@ function storage(action, data) {
         case 'read': {
             //read config, tasks, notes
             chrome.storage.sync.get(['dash-config'], function (data) {
+                console.log(`zzz read config`, data)
                 if (!data || Object.keys(data).length === 0);
                 else config = data['dash-config']
                 applyConfig()
@@ -137,15 +130,24 @@ function storage(action, data) {
                 else {
                     tasks = data['dash-todo']
                 }
-                // after_load(data)
                 renderTasks()
             })
 
-            // chrome.storage.sync.get(['dash-mode'], function (data) {
-            //     if (!data || Object.keys(data).length === 0) mode = 'tasks'
-            //     else mode = data['dash-mode']
-            //     applyMode(mode)
-            // })
+            for(let i=0; i<5; i++) {
+                chrome.storage.sync.get([`dash-notes-${i}`], function (data) {
+                    if (!data || Object.keys(data).length === 0) {
+                        notes[i] = defaultNotes[i]
+                    }
+                    else {
+                        notes[i] = data[`dash-notes-${i}`]
+                    }
+                    if(i === 4) {
+                        console.log(`zzzat4`, notes, config)
+                        applyActiveNote()
+                    }
+                })
+            }
+
             break
         }
         //update config, tasks, notes
@@ -157,8 +159,8 @@ function storage(action, data) {
             break
         }
         case 'update-notes': {
-            chrome.storage.sync.set({ [`dash-notes-${data.id}`]: data.value }, function () {
-                console.log('Value is set to ' + data)
+            chrome.storage.sync.set({ [`dash-notes-${config.noteId}`]: data }, function () {
+                console.log('Value is set to ' + config.noteId, data)
             })
             break
         }
@@ -171,19 +173,9 @@ function storage(action, data) {
     }
 }
 
-function after_load(data) {
-    tasks = data['tasks']
-    config = data['config']
-    notes = data['notes']
-    renderTasks(tasks)
-    renderNotes(notes)
-    applyConfig(config)
-}
-
 function applyConfig() {
     applyTheme(config.theme)
     applyMode(config.mode)
-    // applyActiveNote(config.noteId)
 }
 
 function applyMode(mode) {
@@ -210,7 +202,7 @@ function applyTheme(theme) {
 }
 
 function applyActiveNote() {
-    renderNotes(notes[config[noteId]])
+    renderNotes(notes[config.noteId])
 }
 
 function renderTasks() {
@@ -246,5 +238,5 @@ function renderTask(task, flag) {
 }
 
 function renderNotes(data) {
-    userNotes.value = data
+    userNotes.value = data.value
 }
