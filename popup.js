@@ -143,8 +143,8 @@ function storage(action, data) {
                         notes[i] = data[`dash-notes-${i}`]
                     }
                     if(i === 4) {
-                        applyActiveNote()
                         loadnotesList()
+                        applyActiveNote()
                     }
                 })
             }
@@ -202,6 +202,12 @@ function applyTheme(theme) {
 }
 
 function applyActiveNote() {
+    for(let i=0; i<5; i++) {
+        const note = document.querySelector(`#note-${i}`)
+        if(!note) break
+        if (i!==config.noteId) note.classList.remove('active')
+        else note.classList.add('active')
+    }
     renderNotes(notes[config.noteId])
 }
 
@@ -220,7 +226,7 @@ function renderTask(task, flag) {
     }
     const marker = document.createElement('div')
     marker.className = 'taskMarker'
-    marker.addEventListener('click', () => delete_task(task.id))
+    // marker.addEventListener('click', () => delete_task(task.id))
     el.appendChild(marker)
     const title = document.createElement('input')
     title.value = task.val
@@ -230,6 +236,7 @@ function renderTask(task, flag) {
     const del = document.createElement('div')
     del.innerHTML = 'x'
     del.className = "deleteTask"
+    del.setAttribute('title', 'Delete')
     del.addEventListener('click', () => delete_task(task.id))
     el.appendChild(del)
 
@@ -242,6 +249,7 @@ function loadnotesList() {
         const note = Object.values(notes)[i]
         const nameContainer = document.createElement('div')
         nameContainer.className = 'nameContainer'
+        nameContainer.id = `note-${i}`
         nameContainer.addEventListener('click', function() {
             config.noteId = i
             applyActiveNote()
