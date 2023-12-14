@@ -87,7 +87,7 @@ function add_task() {
         id: tasks.length === 0 ? 0 : tasks[tasks.length - 1]['id'] + 1
     }
     tasks.push(task)
-    storage('update-todo', tasks)
+    storage('update-tasks', tasks)
     input.value = ''
     renderTask(task, 'new')
 }
@@ -96,12 +96,12 @@ function edit_task(id, value) {
     for (let task of tasks) {
         if (task.id === id) task.val = value
     }
-    storage('update-todo', tasks)
+    storage('update-tasks', tasks)
 }
 
 function delete_task(id) {
     tasks = tasks.filter(i => i.id !== id)
-    storage('update-todo', tasks)
+    storage('update-tasks', tasks)
     const target = document.querySelector(`#task-${id}`)
     target.classList.add('deleted')
     setTimeout(() => target.remove(), 500)
@@ -126,10 +126,10 @@ function storage(action, data) {
                 applyConfig()
             })
 
-            chrome.storage.sync.get(['dash-todo'], function (data) {
+            chrome.storage.sync.get(['dash-tasks'], function (data) {
                 if (!data || Object.keys(data).length === 0);
                 else {
-                    tasks = data['dash-todo']
+                    tasks = data['dash-tasks']
                 }
                 renderTasks()
             })
@@ -152,8 +152,8 @@ function storage(action, data) {
         }
         //update config, tasks, notes
 
-        case 'update-todo': {
-            chrome.storage.sync.set({ 'dash-todo': data }, function () {
+        case 'update-tasks': {
+            chrome.storage.sync.set({ 'dash-tasks': data }, function () {
                 // console.log('Value is set to ' + data)
             })
             break
