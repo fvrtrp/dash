@@ -1,7 +1,7 @@
 {
     "name": "dash - transient todo and notes app",
-    "description": "",
-    "version": "2.1",
+    "description": "With sync storage and themes",
+    "version": "2.2",
     "manifest_version": 3,
     "action": {
         "default_popup": "popup.html"

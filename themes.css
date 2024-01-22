@@ -1,6 +1,28 @@
-.theme-blues {
-    background: #351fff;
+.theme-dark {
+    background: black;
 }
+.theme-blues {
+    background: linear-gradient(to bottom right, #1900ff, #351fff);
+}
+.theme-forest {
+    background: linear-gradient(to bottom right, #444444, #00665e);
+}
+.theme-cherry {
+    background: linear-gradient(to bottom right, #444444, #7e0000);
+}
+.theme-calm {
+    background: linear-gradient(to bottom right, #bd1dff, #1ac9ba);
+}
+.theme-sepia {
+    background: linear-gradient(to bottom right, #444444, #6d4114);
+}
+.theme-glass {
+    background: linear-gradient(to bottom right, #444444, #142f6d);
+}
+.theme-desat {
+    background: linear-gradient(to bottom right, #2a2a2a, #2a2a2a);
+}
+
 
 /* marker */
 .theme-blues .taskMarker circle {
@@ -8,17 +30,4 @@
 }
 .theme-dark .taskMarker circle {
     stroke: #24FF43;
-}
-
-.theme-btn#blues {
-    background: #4933FF;
-}
-.theme-btn#blues:hover {
-    background: #A533FF;
-}
-.theme-btn#dark {
-    background: #000000;
-}
-.theme-btn#dark:hover {
-    background: #333333;
 }
