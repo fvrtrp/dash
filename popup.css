@@ -175,7 +175,8 @@ a {
 
 .taskMarker {
     width: 5px;
-    height: 5px;
+    height: 4px;
+    margin-top: 3px;
     /* border-radius: 50%; */
     border: solid 3px pink;
     border-radius: 50%;
