@@ -109,7 +109,7 @@ function delete_task(id) {
 
 function save_notes() {
     const input = document.querySelector('#userNotes')
-    const val = input.value
+    let val = input.value
     if (!val) val = ''
     notes[config.noteId].value = val
     storage('update-notes')
