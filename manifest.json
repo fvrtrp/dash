@@ -1,7 +1,7 @@
 {
     "name": "dash - transient todo and notes app",
     "description": "With sync storage and themes",
-    "version": "2.3.1",
+    "version": "2.3.2",
     "manifest_version": 3,
     "action": {
         "default_popup": "popup.html"
@@ -17,8 +17,7 @@
     "commands": {
         "_execute_action": {
             "suggested_key": {
-                "default": "Alt+Z",
-                "mac": "Command+Z"
+                "default": "Alt+Z"
             }
         }
     }
