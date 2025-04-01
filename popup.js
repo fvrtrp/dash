@@ -8,23 +8,7 @@ const defaultNotes = {
     0: {
         name: 'default',
         value: ''
-    },
-    1: {
-        name: 'note 2',
-        value: ''
-    },
-    2: {
-        name: 'note 3',
-        value: ''
-    },
-    3: {
-        name: 'note 4',
-        value: ''
-    },
-    4: {
-        name: 'note 5',
-        value: ''
-    },
+    }
 }
 
 let userInput = document.querySelector("#userInput")
@@ -37,18 +21,27 @@ const modeToggle = document.querySelector('#mode-toggle')
 const resultContainer = document.querySelector("#result")
 const errorContainer = document.querySelector("#error")
 
-window.onload = init()
+window.addEventListener('DOMContentLoaded', function() {
+    init();
+});
 
 function init() {
     reset()
     // chrome.storage.sync.clear()
     load_data()
     add_eventlisteners()
+    
+    // Initialize notes content structure right away to prevent layout issues
+    initNotesContent()
+    
+    // Apply the correct mode
+    applyConfig()
 }
 
 function reset() {
-    tasksContainer.style.display = 'none';
-    notesContainer.style.display = 'none';
+    // Remove inline styles and use classes instead
+    tasksContainer.classList.remove('active');
+    notesContainer.classList.remove('active');
 }
 
 function load_data() {
@@ -134,21 +127,39 @@ function storage(action, data) {
                 renderTasks()
             })
 
-            for(let i=0; i<5; i++) {
-                chrome.storage.sync.get([`dash-notes-${i}`], function (data) {
-                    if (!data || Object.keys(data).length === 0) {
-                        notes[i] = defaultNotes[i]
-                    }
-                    else {
-                        notes[i] = data[`dash-notes-${i}`]
-                    }
-                    if(i === 4) {
-                        loadnotesList()
-                        applyActiveNote()
-                    }
-                })
-            }
-            break
+            chrome.storage.sync.get(['dash-notes-list'], function (data) {
+                let noteIds = [];
+                if (!data || Object.keys(data).length === 0) {
+                    noteIds = [0]; // Start with at least one default note
+                } else {
+                    noteIds = data['dash-notes-list'];
+                }
+                
+                let loaded = 0;
+                noteIds.forEach(id => {
+                    chrome.storage.sync.get([`dash-notes-${id}`], function (data) {
+                        if (!data || Object.keys(data).length === 0) {
+                            if (id === 0) {
+                                notes[id] = defaultNotes[0];
+                            } else {
+                                notes[id] = {
+                                    name: `Note ${id + 1}`,
+                                    value: ''
+                                };
+                            }
+                        } else {
+                            notes[id] = data[`dash-notes-${id}`];
+                        }
+                        
+                        loaded++;
+                        if (loaded === noteIds.length) {
+                            loadNotesDropdown();
+                            applyActiveNote();
+                        }
+                    });
+                });
+            });
+            break;
         }
         //update config, tasks, notes
 
@@ -170,6 +181,12 @@ function storage(action, data) {
             })
             break
         }
+        case 'update-notes-list': {
+            chrome.storage.sync.set({ 'dash-notes-list': Object.keys(notes).map(Number) }, function () {
+                // console.log('Notes list updated')
+            })
+            break
+        }
     }
 }
 
@@ -180,35 +197,61 @@ function applyConfig() {
 
 function applyMode(mode) {
     reset()
+    
+    // Set the theme class again (was being overwritten)
+    const currentTheme = config.theme;
+    
     if (mode === 'tasks') {
-        tasksContainer.style.display = 'block'
+        tasksContainer.classList.add('active')
         userInput.focus()
         modeToggle.innerText = 'Switch to notes'
         document.body.style.width = '400px'
+        document.body.classList.remove('notes-mode')
+        document.body.className = `theme-${currentTheme}`
     }
     else if (mode === 'notes') {
-        notesContainer.style.display = 'block'
+        // Instead of setting display:block inline, use a class
+        notesContainer.classList.add('active')
+        initNotesContent()
         userNotes.focus()
         modeToggle.innerText = 'Switch to tasks'
         document.body.style.width = '700px'
+        document.body.className = `theme-${currentTheme} notes-mode`
     }
 }
 
 function applyTheme(theme) {
-    document.body.className = `theme-${theme}`
+    // Preserve the notes-mode class if it exists
+    const isNotesMode = document.body.classList.contains('notes-mode');
+    
+    document.body.className = `theme-${theme}${isNotesMode ? ' notes-mode' : ''}`;
+    
     const themeButtons = document.querySelectorAll('.theme-btn')
     themeButtons.forEach(i => i.classList.remove('active'))
     document.querySelector(`#${theme}`).classList.add('active')
 }
 
 function applyActiveNote() {
-    for(let i=0; i<5; i++) {
-        const note = document.querySelector(`#note-${i}`)
-        if(!note) break
-        if (i!==config.noteId) note.classList.remove('active')
-        else note.classList.add('active')
+    renderNotes(notes[config.noteId]);
+    
+    // Update active class in the sidebar
+    document.querySelectorAll('.note-item').forEach(item => {
+        const itemId = parseInt(item.getAttribute('data-note-id'));
+        if (itemId === config.noteId) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+    
+    // Update the note title
+    const titleInput = document.querySelector('.note-title');
+    if (titleInput && notes[config.noteId]) {
+        titleInput.value = notes[config.noteId].name;
     }
-    renderNotes(notes[config.noteId])
+    
+    // Update the note actions
+    createNoteActions();
 }
 
 function renderTasks() {
@@ -244,30 +287,204 @@ function renderTask(task, flag) {
     container.appendChild(el)
 }
 
-function loadnotesList() {
-    for(let i=0; i<5; i++) {
-        const note = Object.values(notes)[i]
-        const nameContainer = document.createElement('div')
-        nameContainer.className = 'nameContainer'
-        nameContainer.id = `note-${i}`
-        nameContainer.addEventListener('click', function() {
-            config.noteId = i
-            applyActiveNote()
-            storage('update-config', config)
-        })
-        const nameInput = document.createElement('input')
-        nameInput.setAttribute('type', 'text')
-        nameInput.addEventListener('input', function(e) {
-            notes[config.noteId].name = e.target.value
-            storage('update-notes')
-        })
-        nameInput.className = 'nameInput'
-        nameInput.value = note.name
-        nameContainer.appendChild(nameInput)
-        notesList.appendChild(nameContainer)
+function deleteNote(id) {
+    // Don't allow deleting the last note
+    if (Object.keys(notes).length <= 1) {
+        return;
+    }
+    
+    // Delete the note
+    delete notes[id];
+    
+    // If we deleted the active note, switch to another one
+    if (id === config.noteId) {
+        config.noteId = parseInt(Object.keys(notes)[0]);
+        storage('update-config', config);
+    }
+    
+    // Update storage
+    storage('update-notes-list');
+    
+    // Refresh the list
+    loadNotesDropdown();
+    applyActiveNote();
+}
+
+function loadNotesDropdown() {
+    // Clear existing notes list
+    notesList.innerHTML = '';
+    
+    // Create header with add button
+    const notesHeader = document.createElement('div');
+    notesHeader.className = 'notes-header';
+    
+    // Create add new note button
+    const addButton = document.createElement('button');
+    addButton.textContent = '+ New';
+    addButton.title = 'Add new note';
+    addButton.className = 'add-note-btn';
+    addButton.addEventListener('click', addNewNote);
+    
+    notesHeader.appendChild(addButton);
+    notesList.appendChild(notesHeader);
+    
+    // Create container for notes list items
+    const notesListItems = document.createElement('div');
+    notesListItems.className = 'notes-list-items';
+    
+    // Add options for each note
+    const sortedNoteIds = Object.keys(notes).map(Number).sort((a, b) => a - b);
+    sortedNoteIds.forEach(id => {
+        const noteItem = document.createElement('div');
+        noteItem.className = 'note-item';
+        noteItem.setAttribute('data-note-id', id);
+        if (id === config.noteId) {
+            noteItem.classList.add('active');
+        }
+        
+        // Add click handler to select this note
+        noteItem.addEventListener('click', function() {
+            const noteId = parseInt(this.getAttribute('data-note-id'));
+            config.noteId = noteId;
+            
+            // Update active class
+            document.querySelectorAll('.note-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            applyActiveNote();
+            storage('update-config', config);
+        });
+        
+        // Create note name (non-editable)
+        const noteName = document.createElement('span');
+        noteName.className = 'note-name';
+        noteName.textContent = notes[id].name || 'Untitled';
+        
+        noteItem.appendChild(noteName);
+        notesListItems.appendChild(noteItem);
+    });
+    
+    notesList.appendChild(notesListItems);
+    
+    // Add the delete button in the note content area
+    createNoteActions();
+}
+
+// Initialize notes content wrapper when loading notes
+function initNotesContent() {
+    // Make sure all elements are available
+    if (!notesContainer || !notesList || !userNotes) {
+        notesList = document.querySelector('#notesList');
+        userNotes = document.querySelector('#userNotes');
+    }
+    
+    // First, remove all children from the container
+    while (notesContainer.firstChild) {
+        notesContainer.removeChild(notesContainer.firstChild);
+    }
+    
+    // Re-append the notesList (sidebar)
+    notesContainer.appendChild(notesList);
+    
+    // Create notes content area
+    const notesContent = document.createElement('div');
+    notesContent.className = 'notes-content';
+    
+    // Create title container
+    const titleContainer = document.createElement('div');
+    titleContainer.className = 'note-title-container';
+    
+    // Create editable title field
+    const titleInput = document.createElement('input');
+    titleInput.type = 'text';
+    titleInput.className = 'note-title';
+    titleInput.placeholder = 'Note title...';
+    titleInput.addEventListener('input', function(e) {
+        // Update the note title
+        if (notes[config.noteId]) {
+            notes[config.noteId].name = e.target.value;
+            storage('update-notes');
+            
+            // Also update the title in the sidebar
+            const sidebarItem = document.querySelector(`.note-item[data-note-id="${config.noteId}"] span`);
+            if (sidebarItem) {
+                sidebarItem.textContent = e.target.value || 'Untitled';
+            }
+        }
+    });
+    
+    titleContainer.appendChild(titleInput);
+    notesContent.appendChild(titleContainer);
+    
+    // Append textarea to content area
+    notesContent.appendChild(userNotes);
+    
+    // Create the actions container
+    const noteActionsContainer = document.createElement('div');
+    noteActionsContainer.className = 'note-actions';
+    notesContent.appendChild(noteActionsContainer);
+    
+    // Append content area to container
+    notesContainer.appendChild(notesContent);
+}
+
+function createNoteActions() {
+    // Get the actions container
+    let noteActionsContainer = document.querySelector('.note-actions');
+    
+    // If not found, the structure might not be initialized yet
+    if (!noteActionsContainer) {
+        initNotesContent();
+        noteActionsContainer = document.querySelector('.note-actions');
+    }
+    
+    // Clear existing actions
+    noteActionsContainer.innerHTML = '';
+    
+    // Only show delete button if there's more than one note
+    if (Object.keys(notes).length > 1) {
+        // Create delete button with SVG icon
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'delete-current-note';
+        deleteButton.title = 'Delete note';
+        deleteButton.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+        </svg>`;
+        
+        deleteButton.addEventListener('click', function() {
+            deleteNote(config.noteId);
+        });
+        
+        noteActionsContainer.appendChild(deleteButton);
     }
 }
 
+function addNewNote() {
+    // Find the next available ID
+    const ids = Object.keys(notes).map(Number);
+    const newId = ids.length > 0 ? Math.max(...ids) + 1 : 0;
+    
+    // Create a new note
+    notes[newId] = {
+        name: `Note ${newId + 1}`,
+        value: ''
+    };
+    
+    // Switch to the new note
+    config.noteId = newId;
+    
+    // Update storage
+    storage('update-notes');
+    storage('update-notes-list');
+    storage('update-config', config);
+    
+    // Refresh the dropdown
+    loadNotesDropdown();
+    applyActiveNote();
+}
+
 function renderNotes(data) {
-    userNotes.value = data.value
+    userNotes.value = data.value;
 }
