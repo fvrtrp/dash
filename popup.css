@@ -92,7 +92,7 @@ textarea#userNotes {
     font-size: 14px;
     resize: none;
     width: 100%;
-    margin: 0;
+    margin: 5px 0 0 0;
 }
 
 ::placeholder {
@@ -272,9 +272,9 @@ a {
 }
 
 .note-title-container {
-    padding: 15px 15px 15px 15px;
+    padding: 5px 15px 5px 15px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     margin-right: 40px; /* Make room for the delete button */
 }
 
@@ -295,7 +295,7 @@ a {
 
 .note-actions {
     position: absolute;
-    top: 10px;
+    top: 3px;
     right: 10px;
     z-index: 10;
 }

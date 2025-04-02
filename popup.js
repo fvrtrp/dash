@@ -26,22 +26,31 @@ window.addEventListener('DOMContentLoaded', function() {
 });
 
 function init() {
+    // Reset UI state first
     reset()
+    
     // chrome.storage.sync.clear()
     load_data()
     add_eventlisteners()
     
+    // Remove these lines since they're now handled in the storage flow
     // Initialize notes content structure right away to prevent layout issues
-    initNotesContent()
+    // initNotesContent()
     
     // Apply the correct mode
-    applyConfig()
+    // applyConfig()
 }
 
 function reset() {
     // Remove inline styles and use classes instead
     tasksContainer.classList.remove('active');
     notesContainer.classList.remove('active');
+    
+    // Set default width 
+    document.body.style.width = '400px';
+    
+    // Apply default theme in case config isn't loaded yet
+    document.body.className = `theme-${config.theme}`;
 }
 
 function load_data() {
@@ -112,50 +121,76 @@ function save_notes() {
 function storage(action, data) {
     switch (action) {
         case 'read': {
-            //read config, tasks, notes
+            // First, ensure the UI is in a stable state while loading
+            // Set default mode at startup to prevent flashing
+            applyMode(config.mode);
+            
+            // Load config first, then load tasks and notes
             chrome.storage.sync.get(['dash-config'], function (data) {
-                if (!data || Object.keys(data).length === 0);
-                else config = data['dash-config']
-                applyConfig()
-            })
-
-            chrome.storage.sync.get(['dash-tasks'], function (data) {
-                if (!data || Object.keys(data).length === 0);
-                else {
-                    tasks = data['dash-tasks']
-                }
-                renderTasks()
-            })
-
-            chrome.storage.sync.get(['dash-notes-list'], function (data) {
-                let noteIds = [];
                 if (!data || Object.keys(data).length === 0) {
-                    noteIds = [0]; // Start with at least one default note
+                    // Keep default config as initialized
                 } else {
-                    noteIds = data['dash-notes-list'];
+                    config = data['dash-config'];
+                    // Apply config immediately after loading it
+                    applyConfig();
                 }
                 
-                let loaded = 0;
-                noteIds.forEach(id => {
-                    chrome.storage.sync.get([`dash-notes-${id}`], function (data) {
+                // Now load tasks
+                chrome.storage.sync.get(['dash-tasks'], function (data) {
+                    if (!data || Object.keys(data).length === 0) {
+                        // Keep default empty tasks array
+                    } else {
+                        tasks = data['dash-tasks'];
+                    }
+                    renderTasks();
+                    
+                    // Finally load notes after tasks
+                    chrome.storage.sync.get(['dash-notes-list'], function (data) {
+                        let noteIds = [];
                         if (!data || Object.keys(data).length === 0) {
-                            if (id === 0) {
-                                notes[id] = defaultNotes[0];
-                            } else {
-                                notes[id] = {
-                                    name: `Note ${id + 1}`,
-                                    value: ''
-                                };
-                            }
+                            noteIds = [0]; // Start with at least one default note
                         } else {
-                            notes[id] = data[`dash-notes-${id}`];
+                            noteIds = data['dash-notes-list'];
                         }
                         
-                        loaded++;
-                        if (loaded === noteIds.length) {
-                            loadNotesDropdown();
-                            applyActiveNote();
-                        }
+                        let loaded = 0;
+                        noteIds.forEach(id => {
+                            chrome.storage.sync.get([`dash-notes-${id}`], function (data) {
+                                if (!data || Object.keys(data).length === 0) {
+                                    if (id === 0) {
+                                        notes[id] = defaultNotes[0];
+                                    } else {
+                                        notes[id] = {
+                                            name: `Note ${id + 1}`,
+                                            value: ''
+                                        };
+                                    }
+                                } else {
+                                    notes[id] = data[`dash-notes-${id}`];
+                                }
+                                
+                                loaded++;
+                                if (loaded === noteIds.length) {
+                                    // Ensure there's at least one note
+                                    if (Object.keys(notes).length === 0) {
+                                        notes[0] = defaultNotes[0];
+                                        config.noteId = 0;
+                                    }
+                                    
+                                    // Make sure config.noteId points to an existing note
+                                    if (!notes[config.noteId]) {
+                                        config.noteId = parseInt(Object.keys(notes)[0]);
+                                    }
+                                    
+                                    loadNotesDropdown();
+                                    
+                                    // Re-apply mode one final time after all data is loaded
+                                    // This ensures the UI is in the correct state
+                                    applyConfig();
+                                    applyActiveNote();
+                                }
+                            });
+                        });
                     });
                 });
             });
@@ -193,30 +228,56 @@ function storage(action, data) {
 function applyConfig() {
     applyTheme(config.theme)
     applyMode(config.mode)
+    
+    // Ensure note actions are recreated if in notes mode
+    if (config.mode === 'notes') {
+        setTimeout(() => createNoteActions(), 0);
+    }
 }
 
 function applyMode(mode) {
     reset()
     
-    // Set the theme class again (was being overwritten)
+    // Get the current theme
     const currentTheme = config.theme;
     
     if (mode === 'tasks') {
+        // Update container visibility
         tasksContainer.classList.add('active')
-        userInput.focus()
+        notesContainer.classList.remove('active')
+        
+        // Update button text
         modeToggle.innerText = 'Switch to notes'
+        
+        // Update body properties
         document.body.style.width = '400px'
-        document.body.classList.remove('notes-mode')
         document.body.className = `theme-${currentTheme}`
+        
+        // Focus the input
+        userInput.focus()
     }
     else if (mode === 'notes') {
-        // Instead of setting display:block inline, use a class
+        // Update container visibility
         notesContainer.classList.add('active')
+        tasksContainer.classList.remove('active')
+        
+        // Ensure notes content is initialized
         initNotesContent()
-        userNotes.focus()
+        
+        // Make sure notes content is displayed correctly
+        if (notes[config.noteId]) {
+            renderNotes(notes[config.noteId])
+        }
+        
+        // Update button text
         modeToggle.innerText = 'Switch to tasks'
+        
+        // Update body properties
         document.body.style.width = '700px'
         document.body.className = `theme-${currentTheme} notes-mode`
+        
+        // Focus after content is loaded
+        userNotes.focus()
     }
 }
 
@@ -229,6 +290,11 @@ function applyTheme(theme) {
     const themeButtons = document.querySelectorAll('.theme-btn')
     themeButtons.forEach(i => i.classList.remove('active'))
     document.querySelector(`#${theme}`).classList.add('active')
+    
+    // If in notes mode, recreate note actions to ensure the delete button is visible
+    if (isNotesMode) {
+        createNoteActions();
+    }
 }
 
 function applyActiveNote() {
@@ -368,6 +434,12 @@ function loadNotesDropdown() {
     
     notesList.appendChild(notesListItems);
     
+    // Make sure the note title is updated in the UI (if it exists)
+    const titleInput = document.querySelector('.note-title');
+    if (titleInput && notes[config.noteId]) {
+        titleInput.value = notes[config.noteId].name || '';
+    }
+    
     // Add the delete button in the note content area
     createNoteActions();
 }
@@ -401,6 +473,12 @@ function initNotesContent() {
     titleInput.type = 'text';
     titleInput.className = 'note-title';
     titleInput.placeholder = 'Note title...';
+    
+    // Set the title value based on current note
+    if (notes[config.noteId]) {
+        titleInput.value = notes[config.noteId].name || '';
+    }
+    
     titleInput.addEventListener('input', function(e) {
         // Update the note title
         if (notes[config.noteId]) {
@@ -438,6 +516,11 @@ function createNoteActions() {
     if (!noteActionsContainer) {
         initNotesContent();
         noteActionsContainer = document.querySelector('.note-actions');
+        
+        // If still not found, we're not in notes mode
+        if (!noteActionsContainer) {
+            return;
+        }
     }
     
     // Clear existing actions
