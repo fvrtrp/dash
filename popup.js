@@ -81,13 +81,28 @@ function add_eventlisteners() {
         toggleNotesView('edit');
     })
     
-    // Set timer to show preview after typing stops
-    userNotes.addEventListener('keyup', () => {
+    // Set timer to show preview after typing stops, but ignore navigation keys
+    userNotes.addEventListener('keyup', (event) => {
+        // Skip preview mode transition for navigation keys
+        const navigationKeys = [
+            'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+            'Home', 'End', 'PageUp', 'PageDown',
+            'Shift', 'Control', 'Alt', 'Meta',
+            'Tab', 'CapsLock', 'Escape'
+        ];
+        
+        if (navigationKeys.includes(event.key)) {
+            // Don't trigger preview mode for navigation keys
+            clearTimeout(typingTimer);
+            return;
+        }
+        
         clearTimeout(typingTimer);
         if (userNotes.value.trim() !== '') {
             typingTimer = setTimeout(() => {
+                // Always switch to preview after inactivity timeout
                 toggleNotesView('preview');
-            }, 1500); // 1.5 second delay
+            }, 1500);
         }
     });
     
@@ -99,15 +114,33 @@ function add_eventlisteners() {
     
     userNotes.addEventListener('blur', () => {
         clearTimeout(typingTimer);
+        // Only switch to preview mode if there's content
         if (userNotes.value.trim() !== '') {
             typingTimer = setTimeout(() => {
                 toggleNotesView('preview');
-            }, 500); // 0.5 second delay on blur
+            }, 300); // 0.3 second delay on blur (reduced for responsiveness)
         }
     });
 
     // Add keyboard shortcuts for common Markdown formatting
     userNotes.addEventListener('keydown', (event) => {
+        // Handle Tab key to insert tab character instead of changing focus
+        if (event.key === 'Tab') {
+            event.preventDefault();
+            const start = userNotes.selectionStart;
+            const end = userNotes.selectionEnd;
+            
+            // Insert tab character at cursor position
+            userNotes.value = userNotes.value.substring(0, start) + '\t' + userNotes.value.substring(end);
+            
+            // Move cursor after the inserted tab
+            userNotes.selectionStart = userNotes.selectionEnd = start + 1;
+            
+            // Save the notes after inserting tab
+            save_notes();
+            return;
+        }
+        
         // Only handle keyboard shortcuts when Ctrl/Cmd key is pressed
         if (!(event.ctrlKey || event.metaKey)) return;
         
@@ -480,7 +513,9 @@ function storage(action, data) {
             break
         }
         case 'update-notes-list': {
-            chrome.storage.sync.set({ 'dash-notes-list': Object.keys(notes).map(Number) }, function () {
+            // Sort note IDs in descending order (newest first) before storing
+            const noteIds = Object.keys(notes).map(Number).sort((a, b) => b - a);
+            chrome.storage.sync.set({ 'dash-notes-list': noteIds }, function () {
                 // console.log('Notes list updated')
             })
             break
@@ -684,8 +719,8 @@ function loadNotesDropdown() {
     const notesListItems = document.createElement('div');
     notesListItems.className = 'notes-list-items';
     
-    // Add options for each note
-    const sortedNoteIds = Object.keys(notes).map(Number).sort((a, b) => a - b);
+    // Add options for each note - sort in descending order (newest first)
+    const sortedNoteIds = Object.keys(notes).map(Number).sort((a, b) => b - a);
     sortedNoteIds.forEach(id => {
         const noteItem = document.createElement('div');
         noteItem.className = 'note-item';
@@ -848,10 +883,25 @@ function initNotesContent() {
             toggleNotesView('edit');
         });
         
-        userNotes.addEventListener('keyup', () => {
+        userNotes.addEventListener('keyup', (event) => {
+            // Skip preview mode transition for navigation keys
+            const navigationKeys = [
+                'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+                'Home', 'End', 'PageUp', 'PageDown',
+                'Shift', 'Control', 'Alt', 'Meta',
+                'Tab', 'CapsLock', 'Escape'
+            ];
+            
+            if (navigationKeys.includes(event.key)) {
+                // Don't trigger preview mode for navigation keys
+                clearTimeout(typingTimer);
+                return;
+            }
+            
             clearTimeout(typingTimer);
             if (userNotes.value.trim() !== '') {
                 typingTimer = setTimeout(() => {
+                    // Always switch to preview after inactivity timeout
                     toggleNotesView('preview');
                 }, 1500);
             }
@@ -864,15 +914,33 @@ function initNotesContent() {
         
         userNotes.addEventListener('blur', () => {
             clearTimeout(typingTimer);
+            // Only switch to preview mode if there's content
             if (userNotes.value.trim() !== '') {
                 typingTimer = setTimeout(() => {
                     toggleNotesView('preview');
-                }, 500);
+                }, 300); // 0.3 second delay on blur (reduced for responsiveness)
             }
         });
         
         // Add keyboard shortcuts
         userNotes.addEventListener('keydown', (event) => {
+            // Handle Tab key to insert tab character instead of changing focus
+            if (event.key === 'Tab') {
+                event.preventDefault();
+                const start = userNotes.selectionStart;
+                const end = userNotes.selectionEnd;
+                
+                // Insert tab character at cursor position
+                userNotes.value = userNotes.value.substring(0, start) + '\t' + userNotes.value.substring(end);
+                
+                // Move cursor after the inserted tab
+                userNotes.selectionStart = userNotes.selectionEnd = start + 1;
+                
+                // Save the notes after inserting tab
+                save_notes();
+                return;
+            }
+            
             if (!(event.ctrlKey || event.metaKey)) return;
             
             let handled = true;
@@ -919,6 +987,12 @@ function initNotesContent() {
     
     markdownPreview.style.display = 'none';
     notesEditArea.appendChild(markdownPreview);
+    
+    // Add the "Click to edit" button
+    const editButton = document.createElement('div');
+    editButton.className = 'edit-button';
+    editButton.textContent = 'Click to edit';
+    notesEditArea.appendChild(editButton);
     
     notesContent.appendChild(notesEditArea);
     
@@ -994,6 +1068,15 @@ function addNewNote() {
     // Refresh the dropdown
     loadNotesDropdown();
     applyActiveNote();
+    
+    // Focus on the note title to allow immediate renaming
+    setTimeout(() => {
+        const titleInput = document.querySelector('.note-title');
+        if (titleInput) {
+            titleInput.focus();
+            titleInput.select();
+        }
+    }, 100);
 }
 
 function renderNotes(data) {
