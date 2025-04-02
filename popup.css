@@ -212,6 +212,10 @@ a {
     opacity: 0;
     transition: opacity 0.7s;
     font-size: 20px;
+    user-select: none;
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE10+/Edge */
 }
 
 /* .taskItem:hover .taskMarker circle{
@@ -228,6 +232,9 @@ a {
 }
 .deleted {
     text-decoration: line-through;
+    opacity: 0;
+    transition: all 0.5s ease;
+    overflow: hidden;
 }
 
 #tasksContainer {
@@ -276,10 +283,13 @@ a {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     margin-bottom: 8px;
     margin-right: 40px; /* Make room for the delete button */
+    position: relative;
+    display: flex;
+    align-items: center;
 }
 
 .note-title {
-    width: 100%;
+    flex: 1;
     background: none;
     border: none;
     outline: none;
@@ -327,6 +337,184 @@ a {
 
 .delete-current-note:hover svg {
     opacity: 1;
+}
+
+/* Notes edit area with in-place preview */
+.notes-edit-area {
+    position: relative;
+    flex: 1;
+    height: calc(100% - 50px); /* Adjust for title area */
+    min-height: 350px;
+    margin-top: 10px;
+}
+
+textarea#userNotes {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    min-height: 350px;
+    background: rgba(0, 0, 0, 0.2);
+    outline: none;
+    padding: 15px;
+    border-radius: 5px;
+    box-sizing: border-box;
+    font-size: 14px;
+    resize: none;
+    width: 100%;
+    margin: 0;
+    z-index: 10;
+}
+
+.markdown-preview {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    white-space: normal;
+    line-height: 1.5;
+    font-family: inherit;
+    padding: 15px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border: none;
+    border-radius: 5px;
+    box-sizing: border-box;
+    font-size: 14px;
+    cursor: pointer;
+    z-index: 5;
+}
+
+/* Make the preview look clickable */
+.markdown-preview:hover {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.markdown-preview:after {
+    content: "Click to edit";
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    color: rgba(255, 255, 255, 0.7);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.markdown-preview:hover:after {
+    opacity: 1;
+}
+
+/* Set the display styles for preview/edit modes */
+.edit-mode .markdown-preview {
+    display: none !important;
+}
+
+.preview-mode textarea#userNotes {
+    display: none !important;
+}
+
+/* Help text for keyboard shortcuts */
+.edit-mode-info {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    padding: 5px 0;
+    margin-top: 5px;
+}
+
+.edit-mode-info kbd {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-family: monospace;
+}
+
+/* Keyboard shortcuts panel */
+.shortcuts-toggle {
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+    text-decoration: underline;
+    display: inline-block;
+    margin-bottom: 5px;
+}
+
+.shortcuts-toggle:hover {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.shortcuts-panel {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 300px;
+    background: rgba(0, 0, 0, 0.85);
+    border-radius: 5px;
+    padding: 12px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    z-index: 20;
+    display: none;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    opacity: 0;
+    transform: translateY(5px);
+    transition: opacity 0.2s, transform 0.2s;
+    margin-top: 5px;
+    overflow: visible;
+    box-sizing: border-box;
+}
+
+.shortcuts-container:hover .shortcuts-panel {
+    display: grid;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.shortcuts-panel div {
+    font-size: 12px;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.9);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.shortcuts-panel kbd {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-family: monospace;
+    display: inline-block;
+    margin-right: 4px;
+}
+
+/* Remove old shortcuts styles */
+.edit-mode-info {
+    display: none;
+}
+
+.shortcuts-toggle {
+    display: none;
+}
+
+/* Placeholder styling */
+.markdown-preview .placeholder {
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+}
+
+/* Remove unnecessary styles */
+.textarea-container, .preview-container {
+    display: none;
+}
+
+.textarea-container::after {
+    display: none;
 }
 
 .notes-header {
@@ -447,4 +635,174 @@ a {
     right: 20px;
     top: 10px;
     cursor: pointer;
+}
+
+/* Markdown Preview Styles */
+.markdown-preview h1 {
+  font-size: 1.8em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+.markdown-preview h2 {
+  font-size: 1.5em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+.markdown-preview h3 {
+  font-size: 1.3em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+.markdown-preview h4, .markdown-preview h5, .markdown-preview h6 {
+  font-size: 1.1em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+.markdown-preview p {
+  margin-bottom: 1em;
+}
+
+.markdown-preview ul, .markdown-preview ol {
+  margin-left: 2em;
+  margin-bottom: 1em;
+}
+
+.markdown-preview blockquote {
+  border-left: 3px solid #ccc;
+  padding-left: 15px;
+  margin-left: 0;
+  color: #777;
+}
+
+.markdown-preview code {
+  font-family: monospace;
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.markdown-preview pre {
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.markdown-preview pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+.markdown-preview a {
+  color: #0366d6;
+  text-decoration: none;
+}
+
+.markdown-preview a:hover {
+  text-decoration: underline;
+}
+
+.markdown-preview img {
+  max-width: 100%;
+}
+
+.markdown-preview table {
+  border-collapse: collapse;
+  margin-bottom: 1em;
+  width: 100%;
+}
+
+.markdown-preview table th, .markdown-preview table td {
+  border: 1px solid #ddd;
+  padding: 6px 13px;
+}
+
+.markdown-preview table tr {
+  background-color: inherit;
+}
+
+.markdown-preview table tr:nth-child(2n) {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Toggle button for edit/preview */
+.toggle-view-btn {
+  display: none; /* Hide this since we're using side-by-side view now */
+}
+
+/* Notes mode styles - These are now unnecessary but keeping as comments for reference */
+/* 
+.preview-mode #userNotes {
+  display: none;
+}
+
+.preview-mode .markdown-preview {
+  display: block;
+}
+
+.edit-mode #userNotes {
+  display: block;
+}
+
+.edit-mode .markdown-preview {
+  display: none;
+}
+*/
+
+/* Add a simple separator line */
+.textarea-container::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 1px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Make both panels scroll independently */
+.textarea-container, .preview-container {
+  overflow-y: auto;
+}
+
+/* Keyboard shortcuts icon and panel */
+.shortcuts-container {
+    position: relative;
+    margin-left: 10px;
+}
+
+.shortcuts-icon {
+    cursor: pointer;
+    font-size: 16px;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+    z-index: 15;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 4px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.shortcuts-icon:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.shortcuts-panel .mac-note {
+    grid-column: 1 / span 2;
+    text-align: center;
+    margin-top: 5px;
+    padding-top: 5px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    font-style: italic;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.7);
 }

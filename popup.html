@@ -3,6 +3,8 @@
 
 <head>
   <link rel="stylesheet" href="index.css">
+  <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="themes.css">
 </head>
 
 <body class="theme-blues">
@@ -16,7 +18,8 @@
   </div>
   <div id="notesContainer">
     <div id="notesList"></div>
-    <textarea id="userNotes" placeholder="Write anything." spellcheck="false"></textarea>
+    <textarea id="userNotes" placeholder="Write Markdown here. When you pause, it will show the formatted preview." spellcheck="false"></textarea>
+    <div id="markdownPreview" class="markdown-preview"></div>
   </div>
   <div class="space"></div>
 
@@ -32,6 +35,7 @@
     <div class="theme-btn theme-desat" id="desat" title="desat"></div>
   </div>
   <div id="mode-toggle"></div>
+  <script src="js/marked.min.js"></script>
   <script src="popup.js"></script>
 </body>
 
