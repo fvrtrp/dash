@@ -102,7 +102,7 @@ function add_eventlisteners() {
             typingTimer = setTimeout(() => {
                 // Always switch to preview after inactivity timeout
                 toggleNotesView('preview');
-            }, 1500);
+            }, 3000);
         }
     });
     
