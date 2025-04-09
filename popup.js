@@ -169,17 +169,11 @@ function add_eventlisteners() {
             case 'l': // List item
                 prefixLineAtSelection(textarea, '- ');
                 break;
-            case 'o': // Ordered list item
-                prefixLineAtSelection(textarea, '1. ');
-                break;
-            case 'c': // Code inline
+            case 'e': // Code inline (changed from preview to code)
                 wrapTextAtSelection(textarea, '`', '`');
                 break;
             case 'd': // Code block
                 insertCodeBlockAtSelection(textarea);
-                break;
-            case 'e': // Toggle edit/preview mode
-                toggleNotesView();
                 break;
             default:
                 handled = false;
@@ -311,14 +305,14 @@ function insertCodeBlockAtSelection(textarea) {
     const end = textarea.selectionEnd;
     const selectedText = textarea.value.substring(start, end);
     
-    // Format for code block with language hint
-    const replacement = `\`\`\`javascript\n${selectedText}\n\`\`\``;
+    // Format for code block without language hint
+    const replacement = `\`\`\`\n${selectedText}\n\`\`\``;
     
     textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
     
     // Position cursor for empty code block
     if (selectedText === '') {
-        const cursorPos = start + 13; // After the language hint
+        const cursorPos = start + 4; // After the backticks, at the newline
         textarea.selectionStart = cursorPos;
         textarea.selectionEnd = cursorPos;
     } else {
@@ -851,10 +845,8 @@ function initNotesContent() {
         <div><kbd>Cmd+2</kbd> H2</div>
         <div><kbd>Cmd+3</kbd> H3</div>
         <div><kbd>Cmd+L</kbd> List</div>
-        <div><kbd>Cmd+O</kbd> Numbers</div>
-        <div><kbd>Cmd+C</kbd> Code</div>
+        <div><kbd>Cmd+E</kbd> Code</div>
         <div><kbd>Cmd+D</kbd> Block</div>
-        <div><kbd>Cmd+E</kbd> Preview</div>
         <div class="mac-note" colspan="2">Windows: use Ctrl instead of Cmd</div>
     `;
     
@@ -954,10 +946,8 @@ function initNotesContent() {
                 case '2': prefixLineAtSelection(textarea, '## '); break;
                 case '3': prefixLineAtSelection(textarea, '### '); break;
                 case 'l': prefixLineAtSelection(textarea, '- '); break;
-                case 'o': prefixLineAtSelection(textarea, '1. '); break;
-                case 'c': wrapTextAtSelection(textarea, '`', '`'); break;
+                case 'e': wrapTextAtSelection(textarea, '`', '`'); break;
                 case 'd': insertCodeBlockAtSelection(textarea); break;
-                case 'e': toggleNotesView(); break;
                 default: handled = false;
             }
             
