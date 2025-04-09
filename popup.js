@@ -804,8 +804,23 @@ function initNotesContent() {
         });
     }
     
+    // Create copy button for notes
+    const copyButton = document.createElement('button');
+    copyButton.className = 'copy-note-btn';
+    copyButton.title = 'Copy note to clipboard';
+    copyButton.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+    </svg>`;
+    
+    copyButton.addEventListener('click', function() {
+        copyNoteToClipboard();
+    });
+    
     // Set up the textarea
     notesEditArea.appendChild(userNotes);
+    
+    // Add the copy button to the notes edit area
+    notesEditArea.appendChild(copyButton);
     
     // Set up the preview element
     if (!markdownPreview) {
@@ -923,4 +938,53 @@ function renderNotes(data) {
     
     userNotes.value = data.value || '';
     renderMarkdownPreview(userNotes, markdownPreview);
+}
+
+/**
+ * Copies the current note content to clipboard
+ */
+function copyNoteToClipboard() {
+    if (!userNotes || !notes[config.noteId]) {
+        console.error('Cannot copy: notes not available');
+        return;
+    }
+    
+    const noteContent = notes[config.noteId].value;
+    
+    // Use the Clipboard API to copy the text
+    navigator.clipboard.writeText(noteContent).then(() => {
+        // Visual feedback - show a temporary tooltip or flash the button
+        const copyButton = document.querySelector('.copy-note-btn');
+        if (copyButton) {
+            // Save the original title
+            const originalTitle = copyButton.title;
+            
+            // Change the title to show feedback
+            copyButton.title = 'Copied!';
+            
+            // Add a visual feedback class
+            copyButton.classList.add('copied');
+            
+            // Add a brief animation effect
+            copyButton.animate(
+                [
+                    { transform: 'scale(1)' },
+                    { transform: 'scale(1.2)' },
+                    { transform: 'scale(1)' }
+                ], 
+                { 
+                    duration: 300,
+                    easing: 'ease-out' 
+                }
+            );
+            
+            // Reset after 2 seconds
+            setTimeout(() => {
+                copyButton.title = originalTitle;
+                copyButton.classList.remove('copied');
+            }, 2000);
+        }
+    }).catch(err => {
+        console.error('Failed to copy text: ', err);
+    });
 }

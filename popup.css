@@ -820,3 +820,51 @@ textarea#userNotes {
     font-size: 10px;
     color: rgba(255, 255, 255, 0.7);
 }
+
+/* Copy button for notes */
+.copy-note-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 20; /* Above the textarea but below other UI elements */
+    opacity: 0.7;
+}
+
+.copy-note-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    opacity: 1;
+}
+
+.copy-note-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+}
+
+.copy-note-btn.copied {
+    background: rgba(0, 255, 0, 0.2);
+    opacity: 1;
+    border: 2px solid rgba(0, 255, 0, 0.6);
+    box-shadow: 0 0 5px rgba(0, 255, 0, 0.4);
+}
+
+/* Only show the copy button when in edit mode or when hovering over the preview */
+.preview-mode .copy-note-btn {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.preview-mode .notes-edit-area:hover .copy-note-btn {
+    opacity: 0.7;
+    pointer-events: auto;
+}
