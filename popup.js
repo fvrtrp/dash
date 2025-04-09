@@ -307,13 +307,23 @@ function storage(action, data) {
                     }
                     renderTasks();
                     
-                    // Finally load notes after tasks
+                    // First get the notes list to ensure we load in the correct order
                     chrome.storage.sync.get(['dash-notes-list'], function (data) {
                         let noteIds = [];
+                        let noteOrders = {};
+                        
                         if (!data || Object.keys(data).length === 0) {
                             noteIds = [0]; // Start with at least one default note
+                            noteOrders = { 0: 1 }; // Give it order 1
                         } else {
                             noteIds = data['dash-notes-list'];
+                            
+                            // Create an order mapping based on the position in the list
+                            // This ensures all notes have an order even if they didn't before
+                            noteIds.forEach((id, index) => {
+                                // Reverse the index for display order (highest first)
+                                noteOrders[id] = noteIds.length - index;
+                            });
                         }
                         
                         let loaded = 0;
@@ -328,8 +338,19 @@ function storage(action, data) {
                                             value: ''
                                         };
                                     }
+                                    // Add the order property
+                                    notes[id].order = noteOrders[id];
                                 } else {
                                     notes[id] = data[`dash-notes-${id}`];
+                                    // If the note doesn't have an order property, add it
+                                    if (notes[id].order === undefined) {
+                                        notes[id].order = noteOrders[id];
+                                        // Save the updated note with order
+                                        const currentNoteId = config.noteId;
+                                        config.noteId = id;
+                                        storage('update-notes');
+                                        config.noteId = currentNoteId;
+                                    }
                                 }
                                 
                                 loaded++;
@@ -337,6 +358,7 @@ function storage(action, data) {
                                     // Ensure there's at least one note
                                     if (Object.keys(notes).length === 0) {
                                         notes[0] = defaultNotes[0];
+                                        notes[0].order = 1;
                                         config.noteId = 0;
                                     }
                                     
@@ -344,6 +366,9 @@ function storage(action, data) {
                                     if (!notes[config.noteId]) {
                                         config.noteId = parseInt(Object.keys(notes)[0]);
                                     }
+                                    
+                                    // Save the updated order to ensure persistence
+                                    storage('update-notes-list');
                                     
                                     loadNotesDropdown();
                                     
@@ -380,12 +405,18 @@ function storage(action, data) {
             break
         }
         case 'update-notes-list': {
-            // Sort note IDs in descending order (newest first) before storing
-            const noteIds = Object.keys(notes).map(Number).sort((a, b) => b - a);
-            chrome.storage.sync.set({ 'dash-notes-list': noteIds }, function () {
+            // Get all notes with their order
+            const noteIds = Object.keys(notes).map(Number);
+            
+            // Sort the note IDs based on order property (which all notes should have now)
+            const sortedNoteIds = noteIds.sort((a, b) => {
+                return notes[b].order - notes[a].order; // Higher order value first
+            });
+            
+            chrome.storage.sync.set({ 'dash-notes-list': sortedNoteIds }, function () {
                 // console.log('Notes list updated')
-            })
-            break
+            });
+            break;
         }
     }
 }
@@ -524,14 +555,52 @@ function deleteNote(id) {
         return;
     }
     
+    // Ensure all notes have order properties before proceeding
+    Object.keys(notes).forEach(noteId => {
+        const numId = parseInt(noteId);
+        if (notes[numId].order === undefined) {
+            notes[numId].order = Number.MAX_SAFE_INTEGER - numId; // Use high values for unordered notes
+        }
+    });
+    
+    // Store the order of the deleted note
+    const deletedOrder = notes[id].order;
+    
     // Delete the note
     delete notes[id];
     
     // If we deleted the active note, switch to another one
     if (id === config.noteId) {
-        config.noteId = parseInt(Object.keys(notes)[0]);
+        // Find the note with the next highest order
+        let nextNoteId = null;
+        let nextHighestOrder = -1;
+        
+        Object.keys(notes).forEach(noteId => {
+            const numId = parseInt(noteId);
+            if (notes[numId].order > nextHighestOrder) {
+                nextHighestOrder = notes[numId].order;
+                nextNoteId = numId;
+            }
+        });
+        
+        config.noteId = nextNoteId !== null ? nextNoteId : parseInt(Object.keys(notes)[0]);
         storage('update-config', config);
     }
+    
+    // Adjust orders for all notes that had a lower order than the deleted note
+    // This maintains the relative order while closing the gap
+    Object.keys(notes).forEach(noteId => {
+        const numId = parseInt(noteId);
+        if (notes[numId].order > deletedOrder) {
+            notes[numId].order -= 1;
+            
+            // Save the updated note
+            const currentNoteId = config.noteId;
+            config.noteId = numId;
+            storage('update-notes');
+            config.noteId = currentNoteId;
+        }
+    });
     
     // Update storage
     storage('update-notes-list');
@@ -563,8 +632,36 @@ function loadNotesDropdown() {
     const notesListItems = document.createElement('div');
     notesListItems.className = 'notes-list-items';
     
-    // Add options for each note - sort in descending order (newest first)
-    const sortedNoteIds = Object.keys(notes).map(Number).sort((a, b) => b - a);
+    // Get all note IDs
+    const noteIds = Object.keys(notes).map(Number);
+    
+    // Ensure all notes have an order property (for backwards compatibility)
+    // Assign default orders based on ID if not present
+    let maxOrder = 0;
+    noteIds.forEach(id => {
+        if (notes[id].order === undefined) {
+            // Find the highest existing order value
+            maxOrder = Math.max(maxOrder, ...noteIds.filter(nid => notes[nid].order !== undefined)
+                .map(nid => notes[nid].order), 0);
+            
+            // Set this note's order to be higher than any existing order
+            // This will place unordered notes at the top initially
+            notes[id].order = maxOrder + 1;
+            maxOrder = notes[id].order;
+            
+            // Save the updated note
+            const currentNoteId = config.noteId;
+            config.noteId = id;
+            storage('update-notes');
+            config.noteId = currentNoteId;
+        }
+    });
+    
+    // Sort notes based on order property
+    const sortedNoteIds = noteIds.sort((a, b) => {
+        return notes[b].order - notes[a].order; // Higher order value first
+    });
+    
     sortedNoteIds.forEach(id => {
         const noteItem = document.createElement('div');
         noteItem.className = 'note-item';
@@ -593,7 +690,44 @@ function loadNotesDropdown() {
         noteName.className = 'note-name';
         noteName.textContent = notes[id].name || 'Untitled';
         
+        // Create arrows container
+        const arrowsContainer = document.createElement('div');
+        arrowsContainer.className = 'note-arrows';
+        
+        // Create up arrow
+        const upArrow = document.createElement('div');
+        upArrow.className = 'note-arrow note-arrow-up';
+        upArrow.title = 'Move note up';
+        upArrow.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7 14l5-5 5 5z"/>
+        </svg>`;
+        
+        // Create down arrow
+        const downArrow = document.createElement('div');
+        downArrow.className = 'note-arrow note-arrow-down';
+        downArrow.title = 'Move note down';
+        downArrow.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7 10l5 5 5-5z"/>
+        </svg>`;
+        
+        // Add event listeners to arrows
+        upArrow.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent note selection
+            moveNote(id, 'up');
+        });
+        
+        downArrow.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent note selection
+            moveNote(id, 'down');
+        });
+        
+        // Add arrows to container
+        arrowsContainer.appendChild(upArrow);
+        arrowsContainer.appendChild(downArrow);
+        
+        // Add elements to note item
         noteItem.appendChild(noteName);
+        noteItem.appendChild(arrowsContainer);
         notesListItems.appendChild(noteItem);
     });
     
@@ -607,6 +741,73 @@ function loadNotesDropdown() {
     
     // Add the delete button in the note content area
     createNoteActions();
+}
+
+/**
+ * Reorders notes based on user interaction with up/down arrows
+ * @param {number} noteId - The ID of the note to move
+ * @param {string} direction - Either 'up' or 'down'
+ */
+function moveNote(noteId, direction) {
+    // Get all note IDs in their current display order
+    const noteItems = document.querySelectorAll('.note-item');
+    const noteIds = Array.from(noteItems).map(item => parseInt(item.getAttribute('data-note-id')));
+    
+    // Ensure all notes have order properties based on current position
+    // This handles cases where some notes might not have order properties yet
+    noteIds.forEach((id, index) => {
+        if (notes[id].order === undefined) {
+            // Reverse index so highest is at top (0 would be the highest value)
+            notes[id].order = noteIds.length - index;
+            
+            // Save the note with its new order
+            const currentNoteId = config.noteId;
+            config.noteId = id;
+            storage('update-notes');
+            config.noteId = currentNoteId;
+        }
+    });
+    
+    // Find the current index of the note
+    const currentIndex = noteIds.indexOf(noteId);
+    
+    // Calculate new index based on direction
+    let newIndex;
+    if (direction === 'up') {
+        // Cannot move the first item up further
+        if (currentIndex === 0) return;
+        newIndex = currentIndex - 1;
+    } else { // direction === 'down'
+        // Cannot move the last item down further
+        if (currentIndex === noteIds.length - 1) return;
+        newIndex = currentIndex + 1;
+    }
+    
+    // Get the note we're swapping with
+    const otherNoteId = noteIds[newIndex];
+    
+    // Swap the order values directly
+    const tempOrder = notes[noteId].order;
+    notes[noteId].order = notes[otherNoteId].order;
+    notes[otherNoteId].order = tempOrder;
+    
+    // Save both updated notes
+    const currentNoteId = config.noteId;
+    
+    // Save the first note
+    config.noteId = noteId;
+    storage('update-notes');
+    
+    // Save the second note
+    config.noteId = otherNoteId;
+    storage('update-notes');
+    
+    // Restore the active note
+    config.noteId = currentNoteId;
+    
+    // Update the notes list in UI and storage
+    storage('update-notes-list');
+    loadNotesDropdown();
 }
 
 // Initialize notes content wrapper when loading notes
@@ -901,10 +1102,14 @@ function addNewNote() {
     const ids = Object.keys(notes).map(Number);
     const newId = ids.length > 0 ? Math.max(...ids) + 1 : 0;
     
-    // Create a new note
+    // Find the highest order value
+    const maxOrder = Math.max(...ids.map(id => notes[id].order || 0), 0);
+    
+    // Create a new note with a higher order value (to place it at the top)
     notes[newId] = {
         name: `Note ${newId + 1}`,
-        value: ''
+        value: '',
+        order: maxOrder + 1
     };
     
     // Switch to the new note
