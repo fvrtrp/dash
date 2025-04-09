@@ -1,3 +1,18 @@
+// Import utility functions from utils.js
+import {
+    wrapTextAtSelection,
+    prefixLineAtSelection,
+    insertLinkAtSelection,
+    insertCodeBlockAtSelection,
+    handleTabKey,
+    toggleNotesView,
+    renderMarkdownPreview,
+    configureMarkedOptions,
+    applyTheme,
+    resetUI,
+    createTaskElement
+} from './utils.js';
+
 let tasks = [], notes = {}
 let config = {
     theme: 'blues',
@@ -47,15 +62,8 @@ function init() {
 }
 
 function reset() {
-    // Remove inline styles and use classes instead
-    tasksContainer.classList.remove('active');
-    notesContainer.classList.remove('active');
-    
-    // Set default width 
-    document.body.style.width = '400px';
-    
-    // Apply default theme in case config isn't loaded yet
-    document.body.className = `theme-${config.theme}`;
+    // Use the resetUI utility function
+    resetUI(tasksContainer, notesContainer, config.theme);
 }
 
 function load_data() {
@@ -72,13 +80,13 @@ function add_eventlisteners() {
     // Enhanced input handling for userNotes with Markdown formatting shortcuts
     userNotes.addEventListener('input', () => {
         save_notes()
-        renderMarkdownPreview()
+        renderMarkdownPreview(userNotes, markdownPreview)
         
         // Clear any existing timer
         clearTimeout(typingTimer);
         
         // Make sure we're in edit mode during typing
-        toggleNotesView('edit');
+        toggleNotesView('edit', userNotes, markdownPreview);
     })
     
     // Set timer to show preview after typing stops, but ignore navigation keys
@@ -101,7 +109,7 @@ function add_eventlisteners() {
         if (userNotes.value.trim() !== '') {
             typingTimer = setTimeout(() => {
                 // Always switch to preview after inactivity timeout
-                toggleNotesView('preview');
+                toggleNotesView('preview', userNotes, markdownPreview);
             }, 3000);
         }
     });
@@ -109,7 +117,7 @@ function add_eventlisteners() {
     // Add focus/blur events to handle seamless preview
     userNotes.addEventListener('focus', () => {
         clearTimeout(typingTimer);
-        toggleNotesView('edit');
+        toggleNotesView('edit', userNotes, markdownPreview);
     });
     
     userNotes.addEventListener('blur', () => {
@@ -117,24 +125,19 @@ function add_eventlisteners() {
         // Only switch to preview mode if there's content
         if (userNotes.value.trim() !== '') {
             typingTimer = setTimeout(() => {
-                toggleNotesView('preview');
+                toggleNotesView('preview', userNotes, markdownPreview);
             }, 300); // 0.3 second delay on blur (reduced for responsiveness)
         }
     });
 
-    // Add keyboard shortcuts for common Markdown formatting
+    // Update the tab key handler to use the new utility function
     userNotes.addEventListener('keydown', (event) => {
         // Handle Tab key to insert tab character instead of changing focus
         if (event.key === 'Tab') {
             event.preventDefault();
-            const start = userNotes.selectionStart;
-            const end = userNotes.selectionEnd;
             
-            // Insert tab character at cursor position
-            userNotes.value = userNotes.value.substring(0, start) + '\t' + userNotes.value.substring(end);
-            
-            // Move cursor after the inserted tab
-            userNotes.selectionStart = userNotes.selectionEnd = start + 1;
+            // Use the handleTabKey utility function
+            handleTabKey(userNotes);
             
             // Save the notes after inserting tab
             save_notes();
@@ -182,14 +185,14 @@ function add_eventlisteners() {
         if (handled) {
             event.preventDefault();
             save_notes();
-            renderMarkdownPreview();
+            renderMarkdownPreview(userNotes, markdownPreview);
         }
     });
     
     // Add click event on the preview to easily switch back to editing
     if (markdownPreview) {
         markdownPreview.addEventListener('click', () => {
-            toggleNotesView('edit');
+            toggleNotesView('edit', userNotes, markdownPreview);
             userNotes.focus();
         });
     }
@@ -211,191 +214,6 @@ function add_eventlisteners() {
         applyConfig()
         storage('update-config', config)
     })
-}
-
-// Toggle between edit and preview views
-function toggleNotesView(mode) {
-    if (!userNotes || !markdownPreview) return;
-    
-    const notesContent = document.querySelector('.notes-content');
-    if (!notesContent) return;
-    
-    // If no mode is specified, toggle the current mode
-    if (!mode) {
-        mode = notesContent.classList.contains('preview-mode') ? 'edit' : 'preview';
-    }
-    
-    if (mode === 'edit') {
-        notesContent.classList.remove('preview-mode');
-        notesContent.classList.add('edit-mode');
-        userNotes.style.display = 'block';
-        markdownPreview.style.display = 'none';
-    } else {
-        notesContent.classList.remove('edit-mode');
-        notesContent.classList.add('preview-mode');
-        userNotes.style.display = 'none';
-        markdownPreview.style.display = 'block';
-        renderMarkdownPreview();
-    }
-}
-
-// Helper functions for Markdown formatting
-function wrapTextAtSelection(textarea, prefix, suffix) {
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = textarea.value.substring(start, end);
-    const replacement = prefix + selectedText + suffix;
-    
-    // Use execCommand to make changes undoable
-    textarea.focus();
-    
-    // Save the selection range
-    const savedSelection = {
-        start: textarea.selectionStart,
-        end: textarea.selectionEnd
-    };
-    
-    // Delete the current selection if any
-    if (start !== end) {
-        document.execCommand('delete');
-    }
-    
-    // Insert the new text with formatting
-    document.execCommand('insertText', false, replacement);
-    
-    // Set the cursor position after the inserted text if no text was selected
-    if (selectedText === '') {
-        const newPosition = start + prefix.length;
-        textarea.selectionStart = newPosition;
-        textarea.selectionEnd = newPosition;
-    }
-    
-    textarea.focus();
-}
-
-function prefixLineAtSelection(textarea, prefix) {
-    const start = textarea.selectionStart;
-    const text = textarea.value;
-    
-    // Find the beginning of the line
-    let lineStart = start;
-    while (lineStart > 0 && text[lineStart - 1] !== '\n') {
-        lineStart--;
-    }
-    
-    // Check if the line already has the prefix
-    const hasPrefix = text.substring(lineStart, lineStart + prefix.length) === prefix;
-    
-    textarea.focus();
-    
-    if (!hasPrefix) {
-        // Save current selection
-        const savedSelection = start;
-        
-        // Set selection to the beginning of the line
-        textarea.selectionStart = lineStart;
-        textarea.selectionEnd = lineStart;
-        
-        // Insert the prefix at the beginning of the line using execCommand
-        document.execCommand('insertText', false, prefix);
-        
-        // Restore cursor position after the inserted prefix
-        const newPosition = savedSelection + prefix.length;
-        textarea.selectionStart = newPosition;
-        textarea.selectionEnd = newPosition;
-    } else {
-        // Set selection to include the prefix
-        textarea.selectionStart = lineStart;
-        textarea.selectionEnd = lineStart + prefix.length;
-        
-        // Remove the prefix if it's already there
-        document.execCommand('delete');
-        
-        // Restore cursor position
-        const newPosition = savedSelection - prefix.length;
-        textarea.selectionStart = newPosition;
-        textarea.selectionEnd = newPosition;
-    }
-    
-    textarea.focus();
-}
-
-function insertLinkAtSelection(textarea) {
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = textarea.value.substring(start, end);
-    
-    let linkText = selectedText || 'link text';
-    const replacement = `[${linkText}](https://)`;
-    
-    textarea.focus();
-    
-    // Delete the current selection if any
-    if (start !== end) {
-        document.execCommand('delete');
-    }
-    
-    // Insert the link text
-    document.execCommand('insertText', false, replacement);
-    
-    // Set the cursor position to the URL position
-    const cursorPos = start + linkText.length + 3;
-    textarea.selectionStart = cursorPos;
-    textarea.selectionEnd = cursorPos + 8; // Select the "https://" part
-    
-    textarea.focus();
-}
-
-// Insert a code block
-function insertCodeBlockAtSelection(textarea) {
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = textarea.value.substring(start, end);
-    
-    // Format for code block without language hint
-    const replacement = `\`\`\`\n${selectedText}\n\`\`\``;
-    
-    textarea.focus();
-    
-    // Delete the current selection if any
-    if (start !== end) {
-        document.execCommand('delete');
-    }
-    
-    // Insert the code block
-    document.execCommand('insertText', false, replacement);
-    
-    // Position cursor for empty code block
-    if (selectedText === '') {
-        const cursorPos = start + 4; // After the backticks, at the newline
-        textarea.selectionStart = cursorPos;
-        textarea.selectionEnd = cursorPos;
-    } else {
-        // Position cursor after the inserted code block
-        textarea.selectionStart = start + replacement.length;
-        textarea.selectionEnd = textarea.selectionStart;
-    }
-    
-    textarea.focus();
-}
-
-// Function to render markdown preview
-function renderMarkdownPreview() {
-    if (!markdownPreview || !userNotes) return;
-    
-    const markdown = userNotes.value;
-    try {
-        // Use marked.js library to convert markdown to HTML
-        markdownPreview.innerHTML = marked.parse(markdown);
-        
-        // If the preview is empty, show a placeholder message
-        if (markdown.trim() === '') {
-            markdownPreview.innerHTML = '<p class="placeholder">Start typing to create a markdown note...</p>';
-        }
-    } catch (error) {
-        console.error("Error parsing markdown:", error);
-        markdownPreview.innerHTML = "<p>Error rendering markdown</p>";
-    }
 }
 
 function add_task() {
@@ -573,12 +391,22 @@ function storage(action, data) {
 }
 
 function applyConfig() {
-    applyTheme(config.theme)
-    applyMode(config.mode)
+    // Apply the theme - note that we need to pass themeButtons to the applyTheme function
+    const isNotesMode = applyTheme(config.theme, themeButtons);
+    
+    // Apply the mode
+    applyMode(config.mode);
     
     // Ensure note actions are recreated if in notes mode
     if (config.mode === 'notes') {
-        setTimeout(() => createNoteActions(), 0);
+        setTimeout(() => {
+            createNoteActions();
+            
+            // If in notes mode, also reapply the current note to refresh the content
+            if (isNotesMode) {
+                applyActiveNote();
+            }
+        }, 0);
     }
 }
 
@@ -625,24 +453,6 @@ function applyMode(mode) {
     }
 }
 
-function applyTheme(theme) {
-    // Preserve the notes-mode class if it exists
-    const isNotesMode = document.body.classList.contains('notes-mode');
-    
-    document.body.className = `theme-${theme}${isNotesMode ? ' notes-mode' : ''}`;
-    
-    const themeButtons = document.querySelectorAll('.theme-btn')
-    themeButtons.forEach(i => i.classList.remove('active'))
-    document.querySelector(`#${theme}`).classList.add('active')
-    
-    // If in notes mode, recreate note actions to ensure the delete button is visible
-    // and reapply the current note to refresh the content
-    if (isNotesMode) {
-        createNoteActions();
-        applyActiveNote();
-    }
-}
-
 function applyActiveNote() {
     renderNotes(notes[config.noteId]);
     
@@ -666,13 +476,13 @@ function applyActiveNote() {
     createNoteActions();
     
     // Render markdown preview and set the correct view mode
-    renderMarkdownPreview();
+    renderMarkdownPreview(userNotes, markdownPreview);
     
     // Start in preview mode if there's content, otherwise in edit mode
     if (notes[config.noteId].value.trim() !== '') {
-        toggleNotesView('preview');
+        toggleNotesView('preview', userNotes, markdownPreview);
     } else {
-        toggleNotesView('edit');
+        toggleNotesView('edit', userNotes, markdownPreview);
         userNotes.focus();
     }
 }
@@ -683,43 +493,28 @@ function renderTasks() {
 }
 
 function renderTask(task, flag) {
-    const el = document.createElement('div')
-    el.id = `task-${task.id}`
-    el.className = 'taskItem'
-    if (flag) {
-        el.classList.add('new')
-        setTimeout(() => el.classList.remove('new'), 100)
-    }
-    const marker = document.createElement('div')
-    marker.className = 'taskMarker'
-    // marker.addEventListener('click', () => delete_task(task.id))
-    el.appendChild(marker)
-    const title = document.createElement('input')
-    title.value = task.val
-    title.setAttribute('placeholder', '...')
-    title.addEventListener('change', (e) => edit_task(task.id, event.target.value))
-    el.appendChild(title)
-    const del = document.createElement('div')
-    del.innerHTML = 'x'
-    del.className = "deleteTask"
-    del.setAttribute('title', 'Delete')
-    del.addEventListener('click', () => delete_task(task.id))
-    el.appendChild(del)
+    // Create the task element using the createTaskElement utility function
+    const el = createTaskElement(
+        task, 
+        flag, 
+        edit_task,  // Pass the edit callback function
+        delete_task // Pass the delete callback function
+    );
 
-    const container = document.querySelector('#tasks')
+    const container = document.querySelector('#tasks');
     
     // If this is a new task (indicated by the flag), insert at the top
     // Otherwise, append to the bottom (for initial loading)
     if (flag === 'new') {
         // Insert at the top - if there are existing tasks, insert before the first child
         if (container.firstChild) {
-            container.insertBefore(el, container.firstChild)
+            container.insertBefore(el, container.firstChild);
         } else {
-            container.appendChild(el)
+            container.appendChild(el);
         }
     } else {
         // For initial loading of tasks, append to the bottom
-        container.appendChild(el)
+        container.appendChild(el);
     }
 }
 
@@ -925,9 +720,9 @@ function initNotesContent() {
         // Add event listeners to the new textarea
         userNotes.addEventListener('input', () => {
             save_notes();
-            renderMarkdownPreview();
+            renderMarkdownPreview(userNotes, markdownPreview);
             clearTimeout(typingTimer);
-            toggleNotesView('edit');
+            toggleNotesView('edit', userNotes, markdownPreview);
         });
         
         userNotes.addEventListener('keyup', (event) => {
@@ -949,14 +744,14 @@ function initNotesContent() {
             if (userNotes.value.trim() !== '') {
                 typingTimer = setTimeout(() => {
                     // Always switch to preview after inactivity timeout
-                    toggleNotesView('preview');
+                    toggleNotesView('preview', userNotes, markdownPreview);
                 }, 1500);
             }
         });
         
         userNotes.addEventListener('focus', () => {
             clearTimeout(typingTimer);
-            toggleNotesView('edit');
+            toggleNotesView('edit', userNotes, markdownPreview);
         });
         
         userNotes.addEventListener('blur', () => {
@@ -964,7 +759,7 @@ function initNotesContent() {
             // Only switch to preview mode if there's content
             if (userNotes.value.trim() !== '') {
                 typingTimer = setTimeout(() => {
-                    toggleNotesView('preview');
+                    toggleNotesView('preview', userNotes, markdownPreview);
                 }, 300); // 0.3 second delay on blur (reduced for responsiveness)
             }
         });
@@ -974,14 +769,9 @@ function initNotesContent() {
             // Handle Tab key to insert tab character instead of changing focus
             if (event.key === 'Tab') {
                 event.preventDefault();
-                const start = userNotes.selectionStart;
-                const end = userNotes.selectionEnd;
                 
-                // Insert tab character at cursor position
-                userNotes.value = userNotes.value.substring(0, start) + '\t' + userNotes.value.substring(end);
-                
-                // Move cursor after the inserted tab
-                userNotes.selectionStart = userNotes.selectionEnd = start + 1;
+                // Use the handleTabKey utility function
+                handleTabKey(userNotes);
                 
                 // Save the notes after inserting tab
                 save_notes();
@@ -1009,7 +799,7 @@ function initNotesContent() {
             if (handled) {
                 event.preventDefault();
                 save_notes();
-                renderMarkdownPreview();
+                renderMarkdownPreview(userNotes, markdownPreview);
             }
         });
     }
@@ -1025,7 +815,7 @@ function initNotesContent() {
         
         // Add click event to switch back to edit mode
         markdownPreview.addEventListener('click', () => {
-            toggleNotesView('edit');
+            toggleNotesView('edit', userNotes, markdownPreview);
             userNotes.focus();
         });
     }
@@ -1132,17 +922,5 @@ function renderNotes(data) {
     }
     
     userNotes.value = data.value || '';
-    renderMarkdownPreview();
-}
-
-// Configure marked options for better code highlighting
-function configureMarkedOptions() {
-    marked.setOptions({
-        gfm: true,
-        breaks: true,
-        sanitize: false,
-        smartLists: true,
-        smartypants: true,
-        xhtml: false
-    });
+    renderMarkdownPreview(userNotes, markdownPreview);
 }
