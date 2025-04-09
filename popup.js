@@ -246,11 +246,30 @@ function wrapTextAtSelection(textarea, prefix, suffix) {
     const selectedText = textarea.value.substring(start, end);
     const replacement = prefix + selectedText + suffix;
     
-    textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+    // Use execCommand to make changes undoable
+    textarea.focus();
     
-    // Set the cursor position to after the inserted text
-    textarea.selectionStart = start + replacement.length;
-    textarea.selectionEnd = textarea.selectionStart;
+    // Save the selection range
+    const savedSelection = {
+        start: textarea.selectionStart,
+        end: textarea.selectionEnd
+    };
+    
+    // Delete the current selection if any
+    if (start !== end) {
+        document.execCommand('delete');
+    }
+    
+    // Insert the new text with formatting
+    document.execCommand('insertText', false, replacement);
+    
+    // Set the cursor position after the inserted text if no text was selected
+    if (selectedText === '') {
+        const newPosition = start + prefix.length;
+        textarea.selectionStart = newPosition;
+        textarea.selectionEnd = newPosition;
+    }
+    
     textarea.focus();
 }
 
@@ -267,16 +286,35 @@ function prefixLineAtSelection(textarea, prefix) {
     // Check if the line already has the prefix
     const hasPrefix = text.substring(lineStart, lineStart + prefix.length) === prefix;
     
+    textarea.focus();
+    
     if (!hasPrefix) {
-        // Insert the prefix at the beginning of the line
-        textarea.value = text.substring(0, lineStart) + prefix + text.substring(lineStart);
-        textarea.selectionStart = start + prefix.length;
-        textarea.selectionEnd = textarea.selectionStart;
+        // Save current selection
+        const savedSelection = start;
+        
+        // Set selection to the beginning of the line
+        textarea.selectionStart = lineStart;
+        textarea.selectionEnd = lineStart;
+        
+        // Insert the prefix at the beginning of the line using execCommand
+        document.execCommand('insertText', false, prefix);
+        
+        // Restore cursor position after the inserted prefix
+        const newPosition = savedSelection + prefix.length;
+        textarea.selectionStart = newPosition;
+        textarea.selectionEnd = newPosition;
     } else {
+        // Set selection to include the prefix
+        textarea.selectionStart = lineStart;
+        textarea.selectionEnd = lineStart + prefix.length;
+        
         // Remove the prefix if it's already there
-        textarea.value = text.substring(0, lineStart) + text.substring(lineStart + prefix.length);
-        textarea.selectionStart = start - prefix.length;
-        textarea.selectionEnd = textarea.selectionStart;
+        document.execCommand('delete');
+        
+        // Restore cursor position
+        const newPosition = savedSelection - prefix.length;
+        textarea.selectionStart = newPosition;
+        textarea.selectionEnd = newPosition;
     }
     
     textarea.focus();
@@ -290,12 +328,21 @@ function insertLinkAtSelection(textarea) {
     let linkText = selectedText || 'link text';
     const replacement = `[${linkText}](https://)`;
     
-    textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+    textarea.focus();
+    
+    // Delete the current selection if any
+    if (start !== end) {
+        document.execCommand('delete');
+    }
+    
+    // Insert the link text
+    document.execCommand('insertText', false, replacement);
     
     // Set the cursor position to the URL position
     const cursorPos = start + linkText.length + 3;
     textarea.selectionStart = cursorPos;
     textarea.selectionEnd = cursorPos + 8; // Select the "https://" part
+    
     textarea.focus();
 }
 
@@ -308,7 +355,15 @@ function insertCodeBlockAtSelection(textarea) {
     // Format for code block without language hint
     const replacement = `\`\`\`\n${selectedText}\n\`\`\``;
     
-    textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+    textarea.focus();
+    
+    // Delete the current selection if any
+    if (start !== end) {
+        document.execCommand('delete');
+    }
+    
+    // Insert the code block
+    document.execCommand('insertText', false, replacement);
     
     // Position cursor for empty code block
     if (selectedText === '') {
