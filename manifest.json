@@ -1,7 +1,7 @@
 {
     "name": "dash - synced todo and notes app",
     "description": "With sync storage and themes",
-    "version": "3.0.1",
+    "version": "3.1.0",
     "manifest_version": 3,
     "action": {
         "default_popup": "popup.html"
