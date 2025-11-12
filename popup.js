@@ -81,12 +81,18 @@ function add_eventlisteners() {
     if (switchToPanelBtn) {
         switchToPanelBtn.addEventListener('click', async () => {
             try {
+                // Save the preference
                 await chrome.storage.sync.set({ extensionOpenMode: 'panel' });
-                showToast('Opening side panel...', 'success', 1500);
-                // Close the popup after a brief delay
-                setTimeout(() => {
-                    window.close();
-                }, 1000);
+                
+                // Get current window to open panel
+                const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+                if (tabs[0] && tabs[0].windowId) {
+                    // Open the side panel
+                    await chrome.sidePanel.open({ windowId: tabs[0].windowId });
+                }
+                
+                // Close the popup
+                window.close();
             } catch (error) {
                 console.error('Error switching to panel:', error);
                 showToast('Failed to switch to panel mode', 'error');

@@ -66,6 +66,9 @@ body.notes-mode {
     align-items: center;
     justify-content: center;
     color: inherit;
+    position: fixed;
+    bottom: 20px;
+    right: 10px;
 }
 
 .popup-toggle-btn svg {
