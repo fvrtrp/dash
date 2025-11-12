@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="index.css">
+  <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="themes.css">
+  <link rel="stylesheet" href="panel.css">
+</head>
+
+<body class="theme-blues panel-mode">
+  <!-- Panel Header -->
+  <div class="panel-header">
+    <div class="appName">DASH</div>
+  </div>
+
+  <!-- Floating Switch to Popup Button -->
+  <button id="switch-to-popup" title="Switch to popup mode">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+      <path d="M19 12h-2v3h-3v2h5v-5zM7 9h3V7H5v5h2V9zm14-6H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16.01H3V4.99h18v14.02z"/>
+    </svg>
+  </button>
+
+  <div id="tasksContainer">
+    <input id="userInput" placeholder="Ex: Check mail" spellcheck="false" />
+    <div id="tasks"></div>
+  </div>
+  <div id="notesContainer">
+    <div id="notesList"></div>
+    <textarea id="userNotes" placeholder="Write Markdown here. When you pause, it will show the formatted preview." spellcheck="false"></textarea>
+    <div id="markdownPreview" class="markdown-preview"></div>
+  </div>
+  <div class="space"></div>
+
+  <div id="notes-search-container">
+    <input type="text" id="notes-search" placeholder="Search notes..." spellcheck="false" />
+    <div id="search-results-message"></div>
+  </div>
+
+  <!-- Bottom controls bar for panel mode -->
+  <div class="panel-controls">
+    <div class="themes">
+      <div class="theme-btn theme-blues" id="blues" title="blues"></div>
+      <div class="theme-btn theme-dark" id="dark" title="dark"></div>
+      <div class="theme-btn theme-glass" id="glass" title="glass"></div>
+      <div class="theme-btn theme-forest" id="forest" title="forest"></div>
+      <div class="theme-btn theme-cherry" id="cherry" title="cherry"></div>
+      <div class="theme-btn theme-calm" id="calm" title="calm"></div>
+      <div class="theme-btn theme-sepia" id="sepia" title="sepia"></div>
+      <div class="theme-btn theme-desat" id="desat" title="desat"></div>
+    </div>
+    <div id="mode-toggle"></div>
+    <a class="attribution" href="https://fvrtrp.com/" target="_blank" title="attribution">ABOUT</a>
+  </div>
+  <div id="toast-container"></div>
+  <script src="js/marked.min.js"></script>
+  <script src="panel.js" type="module"></script>
+</body>
+
+</html>
+

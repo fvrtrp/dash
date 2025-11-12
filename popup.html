@@ -8,10 +8,17 @@
 </head>
 
 <body class="theme-blues">
-  <a href="https://chrome.google.com/webstore/detail/dash-transient-todo-app/ljheneifbckpafceajjbbbimiknkaeib"    target="_blank" class="appLink">
-    <div class="appName">DASH</div>
-    <!-- <div class="appDescription">Transient Todo app</div> -->
-  </a>
+  <div class="popup-header">
+    <a href="https://chrome.google.com/webstore/detail/dash-transient-todo-app/ljheneifbckpafceajjbbbimiknkaeib"    target="_blank" class="appLink">
+      <div class="appName">DASH</div>
+      <!-- <div class="appDescription">Transient Todo app</div> -->
+    </a>
+    <button id="switch-to-panel" class="popup-toggle-btn" title="Open as side panel">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+        <path d="M15 3H3v18h12V3zm2 0v18h4V3h-4z"/>
+      </svg>
+    </button>
+  </div>
   <div id="tasksContainer">
     <input id="userInput" placeholder="Ex: Check mail" spellcheck="false" />
     <div id="tasks"></div>

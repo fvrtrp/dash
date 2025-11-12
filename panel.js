@@ -36,7 +36,7 @@ const notesContainer = document.querySelector('#notesContainer')
 let themeButtons = document.querySelectorAll('.theme-btn')
 const modeToggle = document.querySelector('#mode-toggle')
 const notesSearch = document.querySelector('#notes-search')
-const switchToPanelBtn = document.querySelector('#switch-to-panel')
+const switchToPopupBtn = document.querySelector('#switch-to-popup')
 const resultContainer = document.querySelector("#result")
 const errorContainer = document.querySelector("#error")
 let typingTimer; // Timer identifier for delayed preview
@@ -77,19 +77,15 @@ function load_data() {
 }
 
 function add_eventlisteners() {
-    // Popup toggle button
-    if (switchToPanelBtn) {
-        switchToPanelBtn.addEventListener('click', async () => {
+    // Panel toggle button
+    if (switchToPopupBtn) {
+        switchToPopupBtn.addEventListener('click', async () => {
             try {
-                await chrome.storage.sync.set({ extensionOpenMode: 'panel' });
-                showToast('Opening side panel...', 'success', 1500);
-                // Close the popup after a brief delay
-                setTimeout(() => {
-                    window.close();
-                }, 1000);
+                await chrome.storage.sync.set({ extensionOpenMode: 'popup' });
+                showToast('Extension will open as popup next time', 'success', 2000);
             } catch (error) {
-                console.error('Error switching to panel:', error);
-                showToast('Failed to switch to panel mode', 'error');
+                console.error('Error switching to popup:', error);
+                showToast('Failed to switch to popup mode', 'error');
             }
         });
     }
@@ -542,9 +538,8 @@ function applyMode(mode) {
         // Update button text
         modeToggle.innerText = 'Switch to notes'
         
-        // Update body properties
-        document.body.style.width = '400px'
-        document.body.className = `theme-${currentTheme}`
+        // Update body properties - panel mode uses full width/height
+        document.body.className = `theme-${currentTheme} panel-mode`
         
         // Focus the input
         userInput.focus()
@@ -554,9 +549,8 @@ function applyMode(mode) {
         notesContainer.classList.add('active')
         tasksContainer.classList.remove('active')
         
-        // Update body properties first
-        document.body.style.width = '700px'
-        document.body.className = `theme-${currentTheme} notes-mode`
+        // Update body properties - panel mode uses full width/height
+        document.body.className = `theme-${currentTheme} notes-mode panel-mode`
         
         // Clear search when switching to notes mode
         if (notesSearch) {

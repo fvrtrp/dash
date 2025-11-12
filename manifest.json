@@ -3,8 +3,14 @@
     "description": "With sync storage and themes",
     "version": "3.2.0",
     "manifest_version": 3,
+    "background": {
+        "service_worker": "background.js"
+    },
     "action": {
         "default_popup": "popup.html"
+    },
+    "side_panel": {
+        "default_path": "panel.html"
     },
     "icons": {
         "16": "icons/icon16.png",
@@ -12,7 +18,8 @@
         "128": "icons/icon128.png"
     },
     "permissions": [
-        "storage"
+        "storage",
+        "sidePanel"
     ],
     "commands": {
         "_execute_action": {

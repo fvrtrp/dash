@@ -1,0 +1,495 @@
+/* Panel mode specific styles */
+
+body.panel-mode {
+    width: 100% !important;
+    height: 100vh !important;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Panel header */
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+    gap: 12px;
+}
+
+.panel-header .appName {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-bottom: 0;
+}
+
+/* Hide the header toggle button - we'll use floating button instead */
+.panel-header .panel-toggle-btn {
+    display: none;
+}
+
+/* Floating toggle button for panel mode - bottom right */
+body.panel-mode #switch-to-popup {
+    position: fixed;
+    top: 5px;
+    right: 5px;
+    z-index: 200;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    padding: 2px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+body.panel-mode #switch-to-popup svg {
+    width: 20px;
+    height: 20px;
+    color: white;
+}
+
+body.panel-mode #switch-to-popup:hover {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.05);
+}
+
+body.panel-mode #switch-to-popup:active {
+    transform: scale(0.95);
+}
+
+/* Adjust containers for panel mode */
+body.panel-mode #tasksContainer,
+body.panel-mode #notesContainer {
+    max-height: calc(100vh - 150px);
+    overflow-y: auto;
+    display: none;
+}
+
+body.panel-mode #tasksContainer.active,
+body.panel-mode #notesContainer.active {
+    display: flex !important;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Tasks container adjustments */
+body.panel-mode #tasksContainer.active {
+    display: flex !important;
+    flex-direction: column;
+}
+
+body.panel-mode #tasksContainer #userInput {
+    width: calc(100% - 32px);
+    max-width: 800px;
+    margin: 16px auto;
+}
+
+body.panel-mode #tasksContainer #tasks {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 80px 16px;
+    max-width: 800px;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+/* Notes container adjustments for panel mode - horizontal tabs layout */
+body.panel-mode.notes-mode #notesContainer {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    padding-bottom: 0;
+}
+
+/* Notes list as horizontal tabs */
+body.panel-mode.notes-mode #notesList {
+    min-height: 70px;
+    height: auto;
+    width: 100% !important;
+    max-height: none;
+    max-width: 100%;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex !important;
+    flex-wrap: wrap;
+    flex-direction: row;
+    overflow: hidden;
+    flex-shrink: 0;
+    padding: 0;
+    scrollbar-width: thin;
+    background: transparent;
+    position: relative;
+}
+
+/* Custom scrollbar for horizontal notes list - thin */
+body.panel-mode.notes-mode #notesList::-webkit-scrollbar {
+    height: 3px;
+}
+
+body.panel-mode.notes-mode #notesList::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+body.panel-mode.notes-mode #notesList::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+}
+
+body.panel-mode.notes-mode #notesList::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* Also make the notes list items scrollbar thin */
+body.panel-mode.notes-mode .notes-list-items::-webkit-scrollbar {
+    height: 3px;
+}
+
+body.panel-mode.notes-mode .notes-list-items::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+body.panel-mode.notes-mode .notes-list-items::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+}
+
+body.panel-mode.notes-mode .notes-list-items::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* Hide sidebar resize handle in panel mode */
+body.panel-mode.notes-mode .sidebar-resize-handle {
+    display: none;
+}
+
+/* Notes header horizontal layout - contains add button and tabs */
+body.panel-mode.notes-mode .notes-header {
+    display: flex !important;
+    align-items: center;
+    width: 100%;
+    padding: 18px 12px;
+    border-bottom: none;
+    flex-shrink: 0;
+    gap: 8px;
+    order: 1;
+    box-sizing: border-box;
+}
+
+body.panel-mode.notes-mode .add-note-btn {
+    margin: 0;
+    white-space: nowrap;
+    font-size: 12px;
+    padding: 6px 12px;
+    flex-shrink: 0;
+    order: 1;
+    width: 100%;
+}
+
+/* Notes list items horizontal - tabs appear after add button */
+body.panel-mode.notes-mode .notes-list-items {
+    display: flex !important;
+    flex-direction: row;
+    gap: 4px;
+    align-items: center;
+    padding: 0 0 0 1px;
+    flex-wrap: nowrap;
+    flex: 1;
+    order: 2;
+    overflow-x: auto;
+}
+
+/* Search container in notes header row */
+body.panel-mode.notes-mode #notes-search-container {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    margin-left: auto;
+    order: 3;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    top: 0;
+    right: 0;
+    max-width: 100%;
+}
+
+/* Note items as horizontal tabs */
+body.panel-mode.notes-mode .note-item {
+    padding: 8px 16px 8px 8px;
+    margin: 0;
+    border-radius: 6px 6px 0 0;
+    border-bottom: 3px solid transparent;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    min-width: 100px;
+    width: auto;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.03);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+body.panel-mode.notes-mode .note-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+body.panel-mode.notes-mode .note-item.active {
+    border-bottom-color: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+body.panel-mode.notes-mode .note-item.dragging {
+    opacity: 0.5;
+}
+
+body.panel-mode.notes-mode .note-item.drag-over {
+    background: rgba(255, 255, 255, 0.15);
+    border-bottom-color: rgba(255, 255, 255, 0.5);
+}
+
+body.panel-mode.notes-mode .note-item .drag-handle {
+    width: 12px;
+    height: 12px;
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+body.panel-mode.notes-mode .note-item:hover .drag-handle {
+    opacity: 1;
+}
+
+body.panel-mode.notes-mode .note-item .drag-handle svg {
+    width: 12px;
+    height: 12px;
+}
+
+body.panel-mode.notes-mode .note-name {
+    font-size: 13px;
+}
+
+/* Notes content full width below tabs */
+body.panel-mode.notes-mode .notes-content {
+    flex: 1;
+    display: flex !important;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    width: 100%;
+    visibility: visible !important;
+    opacity: 1 !important;
+    margin-top: 10px;
+}
+
+body.panel-mode.notes-mode .note-title-container {
+    padding: 12px 15px;
+    margin-right: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    width: calc(100% - 60px);
+    justify-content: space-between;
+    border: none;
+    margin-bottom: 0;
+}
+
+body.panel-mode.notes-mode .note-title {
+    flex: 1;
+    min-width: 200px;
+    max-width: 200px;
+}
+
+body.panel-mode.notes-mode .storage-toggle-container {
+    flex-shrink: 0;
+}
+
+body.panel-mode.notes-mode .notes-edit-area {
+    flex: 1;
+    display: flex !important;
+    flex-direction: column;
+    overflow: hidden;
+    overflow-y: scroll;
+    position: relative;
+    visibility: visible !important;
+}
+
+body.panel-mode.notes-mode #userNotes {
+    flex: 1;
+    height: 100%;
+    max-height: none !important;
+    width: 100% !important;
+    min-height: 300px;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+body.panel-mode.notes-mode #markdownPreview {
+    flex: 1;
+    height: auto !important;
+    max-height: none !important;
+    width: 100% !important;
+    min-height: 300px;
+    display: none;
+    visibility: visible !important;
+    opacity: 1 !important;
+    box-sizing: content-box;
+}
+
+body.panel-mode.notes-mode .notes-content.preview-mode #markdownPreview {
+    display: block !important;
+}
+
+body.panel-mode.notes-mode .notes-content.preview-mode #userNotes {
+    display: none !important;
+}
+
+/* Note actions in panel mode */
+body.panel-mode.notes-mode .note-actions {
+    padding: 5px 0px;
+    right: 5px;
+}
+
+/* Bottom controls bar for panel mode */
+body.panel-mode .panel-controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 100;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+/* Mode toggle positioning for panel */
+body.panel-mode #mode-toggle {
+    position: static;
+    order: 3;
+    margin: 0;
+    width: 100%;
+    text-align: center;
+}
+
+/* Theme buttons positioning for panel */
+body.panel-mode .themes {
+  position: static;
+  order: 2;
+  margin: 0;
+  transform: none;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Attribution positioning for panel */
+body.panel-mode .attribution {
+    position: absolute;
+    order: 1;
+    margin: 0;
+}
+
+/* Adjust theme buttons for panel */
+body.panel-mode .theme-btn {
+    width: 24px;
+    height: 24px;
+}
+
+/* Hide search container by default in panel mode */
+body.panel-mode #notes-search-container {
+    display: none !important;
+}
+
+/* Show and position search in notes header row */
+body.panel-mode.notes-mode #notes-search-container {
+    display: flex !important;
+}
+
+body.panel-mode.notes-mode #notes-search {
+    width: 200px;
+    padding: 6px 12px;
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+body.panel-mode.notes-mode #search-results-message {
+    font-size: 11px;
+    white-space: nowrap;
+    margin-left: 8px;
+    opacity: 0.8;
+}
+
+/* Hide appLink in panel mode (it's already in the header) */
+body.panel-mode .appLink {
+    display: none;
+}
+
+/* Adjust space element for panel mode */
+body.panel-mode .space {
+    flex: 0;
+    min-height: 60px;
+    height: 60px;
+}
+
+/* Adjust main content area to account for bottom bar */
+body.panel-mode #notesContainer {
+    padding-bottom: 80px;
+}
+
+/* Storage indicator and other floating elements positioning */
+body.panel-mode.notes-mode .storage-indicator,
+body.panel-mode.notes-mode .copy-note-btn,
+body.panel-mode.notes-mode .shortcuts-container {
+    position: absolute;
+}
+
+body.panel-mode.notes-mode .storage-indicator {
+  bottom: 2px;
+  right: 2px;
+  max-height: 50px;
+  width: fit-content;
+}
+
+body.panel-mode.notes-mode .copy-note-btn {
+    bottom: 12px;
+    right: 120px;
+}
+
+body.panel-mode.notes-mode .shortcuts-container {
+  bottom: 12px;
+  right: 50px;
+  width: fit-content;
+  height: 70px;
+}
+
