@@ -1144,6 +1144,26 @@ body.notes-mode #notes-search-container {
     border-top: 2px solid rgba(255, 255, 255, 0.6);
 }
 
+/* Search term highlighting */
+.search-highlight {
+    background-color: rgba(255, 255, 0, 0.4);
+    color: inherit;
+    padding: 2px 0;
+    border-radius: 2px;
+    font-weight: inherit;
+    transition: background-color 0.2s;
+}
+
+/* Make highlights more visible in preview mode */
+.preview-mode .search-highlight {
+    background-color: rgba(255, 255, 0, 0.5);
+}
+
+/* Different highlight color for dark themes */
+.theme-dark .search-highlight {
+    background-color: rgba(255, 255, 0, 0.3);
+}
+
 /* Toast notification system */
 #toast-container {
     position: fixed;

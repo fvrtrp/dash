@@ -40,6 +40,8 @@ const resultContainer = document.querySelector("#result")
 const errorContainer = document.querySelector("#error")
 let typingTimer; // Timer identifier for delayed preview
 let searchResults = []; // Array to store search results
+let currentSearchTerm = ''; // Current search term for highlighting
+let searchDebounceTimer = null; // Timer for debouncing search input
 
 window.addEventListener('DOMContentLoaded', function() {
     init();
@@ -218,15 +220,34 @@ function add_eventlisteners() {
         storage('update-config', config)
     })
     
-    // Add event listener for notes search
+    // Add event listener for notes search with debouncing
     if (notesSearch) {
         notesSearch.addEventListener('input', (e) => {
-            handleNotesSearch(e.target.value);
+            // Clear any existing timer
+            if (searchDebounceTimer) {
+                clearTimeout(searchDebounceTimer);
+            }
+            
+            const searchValue = e.target.value;
+            
+            // If search is empty, handle immediately
+            if (!searchValue.trim()) {
+                handleNotesSearch('');
+                return;
+            }
+            
+            // Otherwise, debounce the search
+            searchDebounceTimer = setTimeout(() => {
+                handleNotesSearch(searchValue);
+            }, 300); // 300ms delay
         });
         
         // Clear search on Escape key
         notesSearch.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
+                if (searchDebounceTimer) {
+                    clearTimeout(searchDebounceTimer);
+                }
                 notesSearch.value = '';
                 handleNotesSearch('');
             }
@@ -568,6 +589,11 @@ function applyActiveNote() {
     
     // Update storage indicator
     updateStorageIndicator();
+    
+    // Reapply search highlights if there's an active search
+    if (currentSearchTerm) {
+        setTimeout(() => highlightSearchTerm(currentSearchTerm), 50);
+    }
     
     // Start in preview mode if there's content, otherwise in edit mode
     if (notes[config.noteId].value.trim() !== '') {
@@ -1340,11 +1366,15 @@ function handleNotesSearch(searchTerm) {
     const resultsMessage = document.querySelector('#search-results-message');
     searchTerm = searchTerm.toLowerCase().trim();
     
+    // Store current search term for highlighting
+    currentSearchTerm = searchTerm;
+    
     // If search is empty, show all notes
     if (!searchTerm) {
         searchResults = [];
         if (resultsMessage) resultsMessage.textContent = '';
         loadNotesDropdown();
+        removeSearchHighlights();
         return;
     }
     
@@ -1376,15 +1406,26 @@ function handleNotesSearch(searchTerm) {
         }
     }
     
+    // If no results found, clear highlights and return
+    if (searchResults.length === 0) {
+        removeSearchHighlights();
+        filterNotesDropdown(searchResults);
+        return;
+    }
+    
     // Filter the notes dropdown to show only matching notes
     filterNotesDropdown(searchResults);
     
     // If there are results, switch to the first matching note
-    if (searchResults.length > 0 && config.noteId !== searchResults[0].id) {
+    if (config.noteId !== searchResults[0].id) {
         config.noteId = searchResults[0].id;
         applyActiveNote();
         storage('update-config', config);
     }
+    
+    // Highlight search term in the current note
+    // Use setTimeout to ensure the note has been rendered
+    setTimeout(() => highlightSearchTerm(searchTerm), 50);
 }
 
 /**
@@ -1412,6 +1453,51 @@ function filterNotesDropdown(results) {
             item.style.display = 'none'; // Hide non-matching notes
         }
     });
+}
+
+/**
+ * Highlights search term in the markdown preview
+ * @param {string} searchTerm - The term to highlight
+ */
+function highlightSearchTerm(searchTerm) {
+    if (!searchTerm || !markdownPreview) return;
+    
+    const preview = markdownPreview;
+    const content = preview.innerHTML;
+    
+    // Remove any existing highlights first
+    removeSearchHighlights();
+    
+    // Create a case-insensitive regex
+    const regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
+    
+    // Replace matches with highlighted version
+    const highlighted = content.replace(regex, '<mark class="search-highlight">$1</mark>');
+    
+    preview.innerHTML = highlighted;
+}
+
+/**
+ * Removes search highlights from the preview
+ */
+function removeSearchHighlights() {
+    if (!markdownPreview) return;
+    
+    const marks = markdownPreview.querySelectorAll('.search-highlight');
+    marks.forEach(mark => {
+        const parent = mark.parentNode;
+        parent.replaceChild(document.createTextNode(mark.textContent), mark);
+        parent.normalize(); // Merge adjacent text nodes
+    });
+}
+
+/**
+ * Escapes special regex characters in a string
+ * @param {string} string - The string to escape
+ * @returns {string} - The escaped string
+ */
+function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
