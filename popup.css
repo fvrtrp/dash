@@ -259,7 +259,9 @@ a {
 
 #notesList {
     width: 100px;
-    margin-right: 15px;
+    min-width: 80px;
+    max-width: 300px;
+    margin-right: 0px;
     overflow-y: auto;
     height: 100%;
     max-height: 400px;
@@ -267,6 +269,40 @@ a {
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
+    position: relative;
+}
+
+/* Resize handle between sidebar and content */
+.sidebar-resize-handle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 8px;
+    height: 100%;
+    cursor: ew-resize;
+    background: transparent;
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.sidebar-resize-handle:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-resize-handle::after {
+    content: '';
+    width: 3px;
+    height: 30px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    transition: background 0.2s;
+}
+
+.sidebar-resize-handle:hover::after {
+    background: rgba(255, 255, 255, 0.6);
 }
 
 .notes-content {
@@ -285,6 +321,8 @@ a {
     position: relative;
     display: flex;
     align-items: center;
+    gap: 10px;
+    flex-shrink: 0; /* Prevent title area from shrinking */
 }
 
 .note-title {
@@ -300,6 +338,65 @@ a {
 
 .note-title:focus {
     border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+}
+
+/* Storage type toggle */
+.storage-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.storage-toggle {
+    position: relative;
+    display: inline-block;
+    width: 32px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.storage-toggle-checkbox {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.storage-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.2);
+    transition: 0.3s;
+    border-radius: 16px;
+}
+
+.storage-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 12px;
+    width: 12px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.storage-toggle-checkbox:checked + .storage-toggle-slider {
+    background-color: #4caf50;
+}
+
+.storage-toggle-checkbox:checked + .storage-toggle-slider:before {
+    transform: translateX(16px);
+}
+
+.storage-toggle-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
 }
 
 .note-actions {
@@ -644,6 +741,47 @@ textarea#userNotes {
     border-color: white;
 }
 
+/* Notes search bar */
+#notes-search-container {
+    position: absolute;
+    top: 10px;
+    display: none; /* Hidden by default */
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+}
+
+body.notes-mode #notes-search-container {
+    display: block; /* Show only in notes mode */
+}
+
+#notes-search {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    width: 150px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+#notes-search:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+#notes-search::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+#search-results-message {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 2px;
+    min-height: 12px;
+}
+
 #mode-toggle {
     position: absolute;
     right: 20px;
@@ -787,22 +925,30 @@ textarea#userNotes {
   overflow-y: auto;
 }
 
-/* Keyboard shortcuts icon and panel */
+/* Keyboard shortcuts icon and panel - positioned in notes edit area */
 .shortcuts-container {
-    position: relative;
-    margin-left: 10px;
+    position: absolute;
+    top: 10px;
+    right: 80px; /* Left of copy button */
+    z-index: 25; /* Above textarea and other elements */
 }
 
 .shortcuts-icon {
     cursor: pointer;
-    font-size: 16px;
-    opacity: 0.8;
-    transition: opacity 0.2s;
-    z-index: 15;
+    font-size: 10px;
+    opacity: 0;
+    transition: all 0.2s;
+    z-index: 25;
     background: rgba(255, 255, 255, 0.15);
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 4px 6px;
+    border-radius: 3px;
     white-space: nowrap;
+    pointer-events: auto; /* Always allow pointer events */
+}
+
+/* Show shortcuts button on hover */
+.notes-edit-area:hover .shortcuts-icon {
+    opacity: 0.7;
 }
 
 .shortcuts-icon:hover {
@@ -821,22 +967,109 @@ textarea#userNotes {
     color: rgba(255, 255, 255, 0.7);
 }
 
-/* Copy button for notes */
+/* Storage indicator - rightmost position */
+.storage-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px; /* Rightmost position */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    z-index: 25; /* Above textarea and other elements */
+    cursor: help;
+    pointer-events: auto; /* Always allow pointer events */
+}
+
+/* Custom tooltip for storage indicator */
+.storage-indicator::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    font-size: 11px;
+    border-radius: 4px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 30;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.storage-indicator::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    right: 8px;
+    margin-top: 2px;
+    border: 6px solid transparent;
+    border-bottom-color: rgba(0, 0, 0, 0.9);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 30;
+}
+
+.storage-indicator:hover::before,
+.storage-indicator:hover::after {
+    opacity: 1;
+}
+
+.storage-circle {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.storage-circle::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: var(--fill-percentage, 0%);
+    background: var(--fill-color, rgba(0, 255, 0, 0.6));
+    transition: height 0.3s ease, background 0.3s ease;
+}
+
+.storage-text {
+    font-size: 8px;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+    text-align: center;
+}
+
+/* Copy button for notes - shows on hover, left of storage indicator */
 .copy-note-btn {
     position: absolute;
     top: 10px;
-    right: 10px;
+    right: 50px; /* Left of storage indicator */
     background: rgba(255, 255, 255, 0.15);
     border: none;
-    width: 32px;
-    height: 32px;
-    border-radius: 4px;
+    width: 24px;
+    height: 24px;
+    border-radius: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
-    z-index: 20; /* Above the textarea but below other UI elements */
+    z-index: 25; /* Above textarea and other elements */
+    opacity: 0;
+    pointer-events: auto; /* Always allow pointer events */
+}
+
+/* Show copy button on hover */
+.notes-edit-area:hover .copy-note-btn {
     opacity: 0.7;
 }
 
@@ -846,16 +1079,9 @@ textarea#userNotes {
 }
 
 .copy-note-btn svg {
-    width: 18px;
-    height: 18px;
+    width: 14px;
+    height: 14px;
     fill: currentColor;
-}
-
-.copy-note-btn.copied {
-    background: rgba(0, 255, 0, 0.2);
-    opacity: 1;
-    border: 2px solid rgba(0, 255, 0, 0.6);
-    box-shadow: 0 0 5px rgba(0, 255, 0, 0.4);
 }
 
 /* Only show the copy button when in edit mode or when hovering over the preview */
@@ -869,46 +1095,92 @@ textarea#userNotes {
     pointer-events: auto;
 }
 
-/* Note reordering arrows */
-.note-arrows {
+/* Drag handle for note reordering */
+.drag-handle {
     position: absolute;
-    right: 5px;
+    left: 5px;
     top: 50%;
     transform: translateY(-50%);
-    display: none;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.note-item:hover .note-arrows {
-    display: flex;
-}
-
-.note-arrow {
     width: 16px;
     height: 16px;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    cursor: pointer;
-    opacity: 0.7;
-    transition: all 0.2s;
+    cursor: grab;
+    opacity: 0.5;
+    transition: opacity 0.2s;
 }
 
-.note-arrow:hover {
-    background: rgba(255, 255, 255, 0.25);
+.note-item:hover .drag-handle {
+    display: flex;
+}
+
+.drag-handle:hover {
     opacity: 1;
 }
 
-.note-arrow svg {
-    width: 12px;
-    height: 12px;
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.drag-handle svg {
+    width: 14px;
+    height: 14px;
     fill: currentColor;
 }
 
-/* Adjust note name width to make room for arrows */
+/* Adjust note name padding to make room for drag handle */
 .note-item:hover .note-name {
-    width: 75%;
+    padding-left: 25px;
+}
+
+/* Drag and drop states */
+.note-item.dragging {
+    opacity: 0.5;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.note-item.drag-over {
+    border-top: 2px solid rgba(255, 255, 255, 0.6);
+}
+
+/* Toast notification system */
+#toast-container {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.toast {
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    pointer-events: auto;
+    border-left: 3px solid;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast.success {
+    border-left-color: #4caf50;
+}
+
+.toast.error {
+    border-left-color: #f44336;
+}
+
+.toast.info {
+    border-left-color: #2196f3;
 }

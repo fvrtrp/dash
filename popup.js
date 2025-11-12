@@ -22,7 +22,8 @@ let config = {
 const defaultNotes = {
     0: {
         name: 'default',
-        value: ''
+        value: '',
+        storageType: 'sync' // 'sync' or 'local'
     }
 }
 
@@ -34,9 +35,11 @@ const tasksContainer = document.querySelector('#tasksContainer')
 const notesContainer = document.querySelector('#notesContainer')
 let themeButtons = document.querySelectorAll('.theme-btn')
 const modeToggle = document.querySelector('#mode-toggle')
+const notesSearch = document.querySelector('#notes-search')
 const resultContainer = document.querySelector("#result")
 const errorContainer = document.querySelector("#error")
 let typingTimer; // Timer identifier for delayed preview
+let searchResults = []; // Array to store search results
 
 window.addEventListener('DOMContentLoaded', function() {
     init();
@@ -214,6 +217,21 @@ function add_eventlisteners() {
         applyConfig()
         storage('update-config', config)
     })
+    
+    // Add event listener for notes search
+    if (notesSearch) {
+        notesSearch.addEventListener('input', (e) => {
+            handleNotesSearch(e.target.value);
+        });
+        
+        // Clear search on Escape key
+        notesSearch.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                notesSearch.value = '';
+                handleNotesSearch('');
+            }
+        });
+    }
 }
 
 function add_task() {
@@ -278,6 +296,7 @@ function save_notes() {
     if (!val) val = ''
     notes[config.noteId].value = val
     storage('update-notes')
+    updateStorageIndicator()
 }
 
 
@@ -328,57 +347,78 @@ function storage(action, data) {
                         
                         let loaded = 0;
                         noteIds.forEach(id => {
-                            chrome.storage.sync.get([`dash-notes-${id}`], function (data) {
-                                if (!data || Object.keys(data).length === 0) {
-                                    if (id === 0) {
-                                        notes[id] = defaultNotes[0];
-                                    } else {
-                                        notes[id] = {
-                                            name: `Note ${id + 1}`,
-                                            value: ''
-                                        };
-                                    }
-                                    // Add the order property
-                                    notes[id].order = noteOrders[id];
-                                } else {
-                                    notes[id] = data[`dash-notes-${id}`];
-                                    // If the note doesn't have an order property, add it
+                            // Try sync storage first, then local storage
+                            chrome.storage.sync.get([`dash-notes-${id}`], function (syncData) {
+                                if (syncData && Object.keys(syncData).length > 0) {
+                                    // Found in sync storage
+                                    notes[id] = syncData[`dash-notes-${id}`];
+                                    if (!notes[id].storageType) notes[id].storageType = 'sync';
                                     if (notes[id].order === undefined) {
                                         notes[id].order = noteOrders[id];
-                                        // Save the updated note with order
                                         const currentNoteId = config.noteId;
                                         config.noteId = id;
                                         storage('update-notes');
                                         config.noteId = currentNoteId;
                                     }
-                                }
-                                
-                                loaded++;
-                                if (loaded === noteIds.length) {
-                                    // Ensure there's at least one note
-                                    if (Object.keys(notes).length === 0) {
-                                        notes[0] = defaultNotes[0];
-                                        notes[0].order = 1;
-                                        config.noteId = 0;
-                                    }
-                                    
-                                    // Make sure config.noteId points to an existing note
-                                    if (!notes[config.noteId]) {
-                                        config.noteId = parseInt(Object.keys(notes)[0]);
-                                    }
-                                    
-                                    // Save the updated order to ensure persistence
-                                    storage('update-notes-list');
-                                    
-                                    loadNotesDropdown();
-                                    
-                                    // Re-apply mode one final time after all data is loaded
-                                    // This ensures the UI is in the correct state
-                                    applyConfig();
-                                    applyActiveNote();
+                                    checkIfAllLoaded();
+                                } else {
+                                    // Try local storage
+                                    chrome.storage.local.get([`dash-notes-${id}`], function (localData) {
+                                        if (localData && Object.keys(localData).length > 0) {
+                                            notes[id] = localData[`dash-notes-${id}`];
+                                            if (!notes[id].storageType) notes[id].storageType = 'local';
+                                            if (notes[id].order === undefined) {
+                                                notes[id].order = noteOrders[id];
+                                                const currentNoteId = config.noteId;
+                                                config.noteId = id;
+                                                storage('update-notes');
+                                                config.noteId = currentNoteId;
+                                            }
+                                        } else {
+                                            // Not found in either storage, create default
+                                            if (id === 0) {
+                                                notes[id] = defaultNotes[0];
+                                            } else {
+                                                notes[id] = {
+                                                    name: `Note ${id + 1}`,
+                                                    value: '',
+                                                    storageType: 'sync'
+                                                };
+                                            }
+                                            notes[id].order = noteOrders[id];
+                                        }
+                                        checkIfAllLoaded();
+                                    });
                                 }
                             });
                         });
+                        
+                        function checkIfAllLoaded() {
+                            loaded++;
+                            if (loaded === noteIds.length) {
+                                // Ensure there's at least one note
+                                if (Object.keys(notes).length === 0) {
+                                    notes[0] = defaultNotes[0];
+                                    notes[0].order = 1;
+                                    config.noteId = 0;
+                                }
+                                
+                                // Make sure config.noteId points to an existing note
+                                if (!notes[config.noteId]) {
+                                    config.noteId = parseInt(Object.keys(notes)[0]);
+                                }
+                                
+                                // Save the updated order to ensure persistence
+                                storage('update-notes-list');
+                                
+                                loadNotesDropdown();
+                                
+                                // Re-apply mode one final time after all data is loaded
+                                // This ensures the UI is in the correct state
+                                applyConfig();
+                                applyActiveNote();
+                            }
+                        }
                     });
                 });
             });
@@ -393,8 +433,16 @@ function storage(action, data) {
             break
         }
         case 'update-notes': {
-            chrome.storage.sync.set({ [`dash-notes-${config.noteId}`]: notes[config.noteId] }, function () {
-                // console.log('Value is set to ' + config.noteId, notes[config.noteId])
+            const note = notes[config.noteId];
+            // Ensure storageType exists
+            if (!note.storageType) {
+                note.storageType = 'sync';
+            }
+            
+            // Save to the appropriate storage
+            const storageApi = note.storageType === 'sync' ? chrome.storage.sync : chrome.storage.local;
+            storageApi.set({ [`dash-notes-${config.noteId}`]: note }, function () {
+                // console.log('Value is set to ' + config.noteId, note)
             })
             break
         }
@@ -471,6 +519,12 @@ function applyMode(mode) {
         document.body.style.width = '700px'
         document.body.className = `theme-${currentTheme} notes-mode`
         
+        // Clear search when switching to notes mode
+        if (notesSearch) {
+            notesSearch.value = '';
+            searchResults = [];
+        }
+        
         // Ensure notes content is initialized
         initNotesContent()
         
@@ -503,11 +557,17 @@ function applyActiveNote() {
         titleInput.value = notes[config.noteId].name;
     }
     
+    // Update storage toggle
+    updateStorageToggle();
+    
     // Update the note actions
     createNoteActions();
     
     // Render markdown preview and set the correct view mode
     renderMarkdownPreview(userNotes, markdownPreview);
+    
+    // Update storage indicator
+    updateStorageIndicator();
     
     // Start in preview mode if there's content, otherwise in edit mode
     if (notes[config.noteId].value.trim() !== '') {
@@ -666,12 +726,16 @@ function loadNotesDropdown() {
         const noteItem = document.createElement('div');
         noteItem.className = 'note-item';
         noteItem.setAttribute('data-note-id', id);
+        noteItem.setAttribute('draggable', 'true');
         if (id === config.noteId) {
             noteItem.classList.add('active');
         }
         
         // Add click handler to select this note
-        noteItem.addEventListener('click', function() {
+        noteItem.addEventListener('click', function(e) {
+            // Don't select if dragging
+            if (e.target.classList.contains('drag-handle')) return;
+            
             const noteId = parseInt(this.getAttribute('data-note-id'));
             config.noteId = noteId;
             
@@ -685,53 +749,48 @@ function loadNotesDropdown() {
             storage('update-config', config);
         });
         
+        // Add drag event listeners
+        noteItem.addEventListener('dragstart', handleNoteDragStart);
+        noteItem.addEventListener('dragover', handleNoteDragOver);
+        noteItem.addEventListener('drop', handleNoteDrop);
+        noteItem.addEventListener('dragend', handleNoteDragEnd);
+        noteItem.addEventListener('dragenter', handleNoteDragEnter);
+        noteItem.addEventListener('dragleave', handleNoteDragLeave);
+        
+        // Create drag handle
+        const dragHandle = document.createElement('div');
+        dragHandle.className = 'drag-handle';
+        dragHandle.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 3h2v2H9V3zm0 4h2v2H9V7zm0 4h2v2H9v-2zm0 4h2v2H9v-2zm0 4h2v2H9v-2zm4-16h2v2h-2V3zm0 4h2v2h-2V7zm0 4h2v2h-2v-2zm0 4h2v2h-2v-2zm0 4h2v2h-2v-2z"/>
+        </svg>`;
+        dragHandle.title = 'Drag to reorder';
+        
         // Create note name (non-editable)
         const noteName = document.createElement('span');
         noteName.className = 'note-name';
         noteName.textContent = notes[id].name || 'Untitled';
         
-        // Create arrows container
-        const arrowsContainer = document.createElement('div');
-        arrowsContainer.className = 'note-arrows';
-        
-        // Create up arrow
-        const upArrow = document.createElement('div');
-        upArrow.className = 'note-arrow note-arrow-up';
-        upArrow.title = 'Move note up';
-        upArrow.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M7 14l5-5 5 5z"/>
-        </svg>`;
-        
-        // Create down arrow
-        const downArrow = document.createElement('div');
-        downArrow.className = 'note-arrow note-arrow-down';
-        downArrow.title = 'Move note down';
-        downArrow.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M7 10l5 5 5-5z"/>
-        </svg>`;
-        
-        // Add event listeners to arrows
-        upArrow.addEventListener('click', function(e) {
-            e.stopPropagation(); // Prevent note selection
-            moveNote(id, 'up');
-        });
-        
-        downArrow.addEventListener('click', function(e) {
-            e.stopPropagation(); // Prevent note selection
-            moveNote(id, 'down');
-        });
-        
-        // Add arrows to container
-        arrowsContainer.appendChild(upArrow);
-        arrowsContainer.appendChild(downArrow);
-        
         // Add elements to note item
+        noteItem.appendChild(dragHandle);
         noteItem.appendChild(noteName);
-        noteItem.appendChild(arrowsContainer);
         notesListItems.appendChild(noteItem);
     });
     
     notesList.appendChild(notesListItems);
+    
+    // Add resize handle to sidebar if it doesn't exist
+    if (!notesList.querySelector('.sidebar-resize-handle')) {
+        const sidebarResizeHandle = document.createElement('div');
+        sidebarResizeHandle.className = 'sidebar-resize-handle';
+        sidebarResizeHandle.addEventListener('mousedown', initSidebarResize);
+        notesList.appendChild(sidebarResizeHandle);
+    }
+    
+    // Load saved sidebar width from localStorage
+    const savedSidebarWidth = localStorage.getItem('dash-sidebar-width');
+    if (savedSidebarWidth) {
+        notesList.style.width = savedSidebarWidth + 'px';
+    }
     
     // Make sure the note title is updated in the UI (if it exists)
     const titleInput = document.querySelector('.note-title');
@@ -743,71 +802,98 @@ function loadNotesDropdown() {
     createNoteActions();
 }
 
+// Drag and drop state
+let draggedNoteElement = null;
+let draggedNoteId = null;
+
 /**
- * Reorders notes based on user interaction with up/down arrows
- * @param {number} noteId - The ID of the note to move
- * @param {string} direction - Either 'up' or 'down'
+ * Handles the start of dragging a note
  */
-function moveNote(noteId, direction) {
-    // Get all note IDs in their current display order
-    const noteItems = document.querySelectorAll('.note-item');
-    const noteIds = Array.from(noteItems).map(item => parseInt(item.getAttribute('data-note-id')));
+function handleNoteDragStart(e) {
+    draggedNoteElement = this;
+    draggedNoteId = parseInt(this.getAttribute('data-note-id'));
     
-    // Ensure all notes have order properties based on current position
-    // This handles cases where some notes might not have order properties yet
-    noteIds.forEach((id, index) => {
-        if (notes[id].order === undefined) {
-            // Reverse index so highest is at top (0 would be the highest value)
-            notes[id].order = noteIds.length - index;
-            
-            // Save the note with its new order
-            const currentNoteId = config.noteId;
-            config.noteId = id;
-            storage('update-notes');
-            config.noteId = currentNoteId;
-        }
-    });
-    
-    // Find the current index of the note
-    const currentIndex = noteIds.indexOf(noteId);
-    
-    // Calculate new index based on direction
-    let newIndex;
-    if (direction === 'up') {
-        // Cannot move the first item up further
-        if (currentIndex === 0) return;
-        newIndex = currentIndex - 1;
-    } else { // direction === 'down'
-        // Cannot move the last item down further
-        if (currentIndex === noteIds.length - 1) return;
-        newIndex = currentIndex + 1;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', this.innerHTML);
+}
+
+/**
+ * Handles drag over event
+ */
+function handleNoteDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+}
+
+/**
+ * Handles drag enter event
+ */
+function handleNoteDragEnter(e) {
+    if (this !== draggedNoteElement) {
+        this.classList.add('drag-over');
+    }
+}
+
+/**
+ * Handles drag leave event
+ */
+function handleNoteDragLeave(e) {
+    this.classList.remove('drag-over');
+}
+
+/**
+ * Handles dropping a note
+ */
+function handleNoteDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
     }
     
-    // Get the note we're swapping with
-    const otherNoteId = noteIds[newIndex];
+    if (draggedNoteElement !== this) {
+        const targetNoteId = parseInt(this.getAttribute('data-note-id'));
+        
+        // Swap order values
+        const tempOrder = notes[draggedNoteId].order;
+        notes[draggedNoteId].order = notes[targetNoteId].order;
+        notes[targetNoteId].order = tempOrder;
+        
+        // Save both notes
+        const currentNoteId = config.noteId;
+        
+        config.noteId = draggedNoteId;
+        storage('update-notes');
+        
+        config.noteId = targetNoteId;
+        storage('update-notes');
+        
+        config.noteId = currentNoteId;
+        
+        // Update the list
+        storage('update-notes-list');
+        loadNotesDropdown();
+    }
     
-    // Swap the order values directly
-    const tempOrder = notes[noteId].order;
-    notes[noteId].order = notes[otherNoteId].order;
-    notes[otherNoteId].order = tempOrder;
+    this.classList.remove('drag-over');
+    return false;
+}
+
+/**
+ * Handles the end of dragging
+ */
+function handleNoteDragEnd(e) {
+    this.classList.remove('dragging');
     
-    // Save both updated notes
-    const currentNoteId = config.noteId;
+    // Remove drag-over class from all items
+    document.querySelectorAll('.note-item').forEach(item => {
+        item.classList.remove('drag-over');
+    });
     
-    // Save the first note
-    config.noteId = noteId;
-    storage('update-notes');
-    
-    // Save the second note
-    config.noteId = otherNoteId;
-    storage('update-notes');
-    
-    // Restore the active note
-    config.noteId = currentNoteId;
-    
-    // Update the notes list in UI and storage
-    storage('update-notes-list');
-    loadNotesDropdown();
+    draggedNoteElement = null;
+    draggedNoteId = null;
 }
 
 // Initialize notes content wrapper when loading notes
@@ -875,35 +961,36 @@ function initNotesContent() {
     });
     
     titleContainer.appendChild(titleInput);
-
-    // Create shortcut help icon in title bar
-    const shortcutsContainer = document.createElement('div');
-    shortcutsContainer.className = 'shortcuts-container';
     
-    const shortcutsIcon = document.createElement('div');
-    shortcutsIcon.className = 'shortcuts-icon';
-    shortcutsIcon.title = 'View keyboard shortcuts';
-    shortcutsIcon.innerHTML = 'Shortcuts';
+    // Create storage type toggle
+    const storageToggleContainer = document.createElement('div');
+    storageToggleContainer.className = 'storage-toggle-container';
     
-    // Create the shortcuts panel
-    const shortcutsPanel = document.createElement('div');
-    shortcutsPanel.className = 'shortcuts-panel';
-    shortcutsPanel.innerHTML = `
-        <div><kbd>Cmd+B</kbd> Bold</div>
-        <div><kbd>Cmd+I</kbd> Italic</div>
-        <div><kbd>Cmd+K</kbd> Link</div>
-        <div><kbd>Cmd+1</kbd> H1</div>
-        <div><kbd>Cmd+2</kbd> H2</div>
-        <div><kbd>Cmd+3</kbd> H3</div>
-        <div><kbd>Cmd+L</kbd> List</div>
-        <div><kbd>Cmd+E</kbd> Code</div>
-        <div><kbd>Cmd+D</kbd> Block</div>
-        <div class="mac-note" colspan="2">Windows: use Ctrl instead of Cmd</div>
-    `;
+    const storageToggle = document.createElement('label');
+    storageToggle.className = 'storage-toggle';
     
-    shortcutsContainer.appendChild(shortcutsIcon);
-    shortcutsContainer.appendChild(shortcutsPanel);
-    titleContainer.appendChild(shortcutsContainer);
+    const toggleCheckbox = document.createElement('input');
+    toggleCheckbox.type = 'checkbox';
+    toggleCheckbox.className = 'storage-toggle-checkbox';
+    
+    const toggleSlider = document.createElement('span');
+    toggleSlider.className = 'storage-toggle-slider';
+    
+    const toggleLabel = document.createElement('span');
+    toggleLabel.className = 'storage-toggle-label';
+    toggleLabel.textContent = 'Sync';
+    
+    storageToggle.appendChild(toggleCheckbox);
+    storageToggle.appendChild(toggleSlider);
+    storageToggleContainer.appendChild(storageToggle);
+    storageToggleContainer.appendChild(toggleLabel);
+    
+    titleContainer.appendChild(storageToggleContainer);
+    
+    // Add event listener for toggle
+    toggleCheckbox.addEventListener('change', function(e) {
+        handleStorageTypeToggle(e.target.checked);
+    });
     
     notesContent.appendChild(titleContainer);
     
@@ -1005,6 +1092,21 @@ function initNotesContent() {
         });
     }
     
+    // Create storage indicator container
+    const storageIndicator = document.createElement('div');
+    storageIndicator.className = 'storage-indicator';
+    storageIndicator.setAttribute('data-tooltip', 'Storage for synced notes is limited to 8KB by the browser.');
+    
+    // Create the circle indicator
+    const storageCircle = document.createElement('div');
+    storageCircle.className = 'storage-circle';
+    storageIndicator.appendChild(storageCircle);
+    
+    // Create the text display
+    const storageText = document.createElement('div');
+    storageText.className = 'storage-text';
+    storageIndicator.appendChild(storageText);
+    
     // Create copy button for notes
     const copyButton = document.createElement('button');
     copyButton.className = 'copy-note-btn';
@@ -1020,7 +1122,37 @@ function initNotesContent() {
     // Set up the textarea
     notesEditArea.appendChild(userNotes);
     
-    // Add the copy button to the notes edit area
+    // Create shortcut help icon
+    const shortcutsContainer = document.createElement('div');
+    shortcutsContainer.className = 'shortcuts-container';
+    
+    const shortcutsIcon = document.createElement('div');
+    shortcutsIcon.className = 'shortcuts-icon';
+    shortcutsIcon.title = 'View keyboard shortcuts';
+    shortcutsIcon.innerHTML = 'Shortcuts';
+    
+    // Create the shortcuts panel
+    const shortcutsPanel = document.createElement('div');
+    shortcutsPanel.className = 'shortcuts-panel';
+    shortcutsPanel.innerHTML = `
+        <div><kbd>Cmd+B</kbd> Bold</div>
+        <div><kbd>Cmd+I</kbd> Italic</div>
+        <div><kbd>Cmd+K</kbd> Link</div>
+        <div><kbd>Cmd+1</kbd> H1</div>
+        <div><kbd>Cmd+2</kbd> H2</div>
+        <div><kbd>Cmd+3</kbd> H3</div>
+        <div><kbd>Cmd+L</kbd> List</div>
+        <div><kbd>Cmd+E</kbd> Code</div>
+        <div><kbd>Cmd+D</kbd> Block</div>
+        <div class="mac-note" colspan="2">Windows: use Ctrl instead of Cmd</div>
+    `;
+    
+    shortcutsContainer.appendChild(shortcutsIcon);
+    shortcutsContainer.appendChild(shortcutsPanel);
+    
+    // Add all buttons to the notes edit area
+    notesEditArea.appendChild(shortcutsContainer);
+    notesEditArea.appendChild(storageIndicator);
     notesEditArea.appendChild(copyButton);
     
     // Set up the preview element
@@ -1059,6 +1191,60 @@ function initNotesContent() {
     if (notes[config.noteId]) {
         renderNotes(notes[config.noteId]);
     }
+}
+
+// Sidebar resize functionality
+let isResizingSidebar = false;
+let sidebarStartX = 0;
+let sidebarStartWidth = 0;
+
+/**
+ * Initialize sidebar resizing
+ */
+function initSidebarResize(e) {
+    isResizingSidebar = true;
+    const notesList = document.querySelector('#notesList');
+    sidebarStartX = e.clientX;
+    sidebarStartWidth = parseInt(document.defaultView.getComputedStyle(notesList).width, 10);
+    
+    document.addEventListener('mousemove', doSidebarResize);
+    document.addEventListener('mouseup', stopSidebarResize);
+    e.preventDefault();
+}
+
+/**
+ * Perform sidebar resizing
+ */
+function doSidebarResize(e) {
+    if (!isResizingSidebar) return;
+    
+    const notesList = document.querySelector('#notesList');
+    const deltaX = e.clientX - sidebarStartX;
+    const newWidth = sidebarStartWidth + deltaX;
+    
+    // Set min and max widths
+    const minWidth = 80;
+    const maxWidth = 300;
+    
+    if (newWidth >= minWidth && newWidth <= maxWidth) {
+        notesList.style.width = newWidth + 'px';
+    }
+}
+
+/**
+ * Stop sidebar resizing and save to localStorage
+ */
+function stopSidebarResize(e) {
+    if (!isResizingSidebar) return;
+    
+    isResizingSidebar = false;
+    document.removeEventListener('mousemove', doSidebarResize);
+    document.removeEventListener('mouseup', stopSidebarResize);
+    
+    // Save the width to localStorage
+    const notesList = document.querySelector('#notesList');
+    const width = parseInt(document.defaultView.getComputedStyle(notesList).width, 10);
+    localStorage.setItem('dash-sidebar-width', width);
 }
 
 function createNoteActions() {
@@ -1109,7 +1295,8 @@ function addNewNote() {
     notes[newId] = {
         name: `Note ${newId + 1}`,
         value: '',
-        order: maxOrder + 1
+        order: maxOrder + 1,
+        storageType: 'sync' // Default to sync storage
     };
     
     // Switch to the new note
@@ -1146,6 +1333,253 @@ function renderNotes(data) {
 }
 
 /**
+ * Handles note search functionality
+ * @param {string} searchTerm - The search term to filter notes
+ */
+function handleNotesSearch(searchTerm) {
+    const resultsMessage = document.querySelector('#search-results-message');
+    searchTerm = searchTerm.toLowerCase().trim();
+    
+    // If search is empty, show all notes
+    if (!searchTerm) {
+        searchResults = [];
+        if (resultsMessage) resultsMessage.textContent = '';
+        loadNotesDropdown();
+        return;
+    }
+    
+    // Search through all notes
+    searchResults = [];
+    Object.keys(notes).forEach(noteId => {
+        const note = notes[noteId];
+        const nameMatch = note.name && note.name.toLowerCase().includes(searchTerm);
+        const valueMatch = note.value && note.value.toLowerCase().includes(searchTerm);
+        
+        if (nameMatch || valueMatch) {
+            searchResults.push({
+                id: parseInt(noteId),
+                name: note.name,
+                order: note.order || 0
+            });
+        }
+    });
+    
+    // Sort search results by order (same as normal display)
+    searchResults.sort((a, b) => b.order - a.order);
+    
+    // Update results message
+    if (resultsMessage) {
+        if (searchResults.length === 0) {
+            resultsMessage.textContent = 'No results';
+        } else {
+            resultsMessage.textContent = `Found ${searchResults.length} result${searchResults.length > 1 ? 's' : ''}`;
+        }
+    }
+    
+    // Filter the notes dropdown to show only matching notes
+    filterNotesDropdown(searchResults);
+    
+    // If there are results, switch to the first matching note
+    if (searchResults.length > 0 && config.noteId !== searchResults[0].id) {
+        config.noteId = searchResults[0].id;
+        applyActiveNote();
+        storage('update-config', config);
+    }
+}
+
+/**
+ * Filters the notes dropdown to show only search results
+ * @param {Array} results - Array of search result objects
+ */
+function filterNotesDropdown(results) {
+    const noteItems = document.querySelectorAll('.note-item');
+    
+    if (results.length === 0) {
+        // Hide all notes if no results
+        noteItems.forEach(item => {
+            item.style.display = 'none';
+        });
+        return;
+    }
+    
+    const resultIds = results.map(r => r.id);
+    
+    noteItems.forEach(item => {
+        const noteId = parseInt(item.getAttribute('data-note-id'));
+        if (resultIds.includes(noteId)) {
+            item.style.display = ''; // Show matching notes
+        } else {
+            item.style.display = 'none'; // Hide non-matching notes
+        }
+    });
+}
+
+/**
+ * Updates the storage indicator for the current note
+ */
+function updateStorageIndicator() {
+    const storageCircle = document.querySelector('.storage-circle');
+    const storageText = document.querySelector('.storage-text');
+    const storageIndicator = document.querySelector('.storage-indicator');
+    
+    if (!storageCircle || !storageText || !storageIndicator || !notes[config.noteId]) {
+        return;
+    }
+    
+    // Calculate the size of the current note in bytes
+    const noteData = JSON.stringify(notes[config.noteId]);
+    const noteSize = new Blob([noteData]).size;
+    
+    // Get the correct limit based on storage type
+    const storageType = notes[config.noteId].storageType || 'sync';
+    const SYNC_LIMIT = 8192; // 8KB
+    const LOCAL_LIMIT = 5242880; // 5MB
+    const QUOTA_BYTES_PER_ITEM = storageType === 'sync' ? SYNC_LIMIT : LOCAL_LIMIT;
+    
+    const percentage = (noteSize / QUOTA_BYTES_PER_ITEM) * 100;
+    
+    // Update the circle fill based on percentage
+    storageCircle.style.setProperty('--fill-percentage', `${Math.min(percentage, 100)}%`);
+    
+    // Change color based on usage
+    if (percentage < 50) {
+        storageCircle.style.setProperty('--fill-color', 'rgba(0, 255, 0, 0.6)');
+    } else if (percentage < 75) {
+        storageCircle.style.setProperty('--fill-color', 'rgba(255, 255, 0, 0.6)');
+    } else if (percentage < 90) {
+        storageCircle.style.setProperty('--fill-color', 'rgba(255, 165, 0, 0.6)');
+    } else {
+        storageCircle.style.setProperty('--fill-color', 'rgba(255, 0, 0, 0.6)');
+    }
+    
+    // Update the text display
+    const sizeKB = (noteSize / 1024).toFixed(1);
+    const maxKB = (QUOTA_BYTES_PER_ITEM / 1024).toFixed(storageType === 'sync' ? 1 : 0);
+    storageText.textContent = `${sizeKB}/${maxKB}kb`;
+    
+    // Update tooltip based on storage type
+    if (storageType === 'sync') {
+        storageIndicator.setAttribute('data-tooltip', 'Sync storage is limited to 8KB per note by Chrome.');
+    } else {
+        storageIndicator.setAttribute('data-tooltip', 'Local storage is limited to 5MB per note by Chrome.');
+    }
+}
+
+/**
+ * Updates the storage toggle UI based on current note's storage type
+ */
+function updateStorageToggle() {
+    const toggleCheckbox = document.querySelector('.storage-toggle-checkbox');
+    const toggleLabel = document.querySelector('.storage-toggle-label');
+    
+    if (!toggleCheckbox || !toggleLabel || !notes[config.noteId]) return;
+    
+    // Ensure storageType exists (for backward compatibility)
+    if (!notes[config.noteId].storageType) {
+        notes[config.noteId].storageType = 'sync';
+    }
+    
+    const isSync = notes[config.noteId].storageType === 'sync';
+    toggleCheckbox.checked = isSync;
+    toggleLabel.textContent = isSync ? 'Sync' : 'Local';
+}
+
+/**
+ * Handles toggling between sync and local storage for a note
+ * @param {boolean} isSync - true if switching to sync, false for local
+ */
+async function handleStorageTypeToggle(isSync) {
+    const newStorageType = isSync ? 'sync' : 'local';
+    const oldStorageType = notes[config.noteId].storageType || 'sync';
+    
+    // If it's already the same type, do nothing
+    if (newStorageType === oldStorageType) return;
+    
+    // Calculate note size
+    const noteData = JSON.stringify(notes[config.noteId]);
+    const noteSize = new Blob([noteData]).size;
+    
+    // Check size limits
+    const SYNC_LIMIT = 8192; // 8KB for sync storage
+    const LOCAL_LIMIT = 5242880; // 5MB for local storage (chrome.storage.local has 5MB limit)
+    
+    const targetLimit = newStorageType === 'sync' ? SYNC_LIMIT : LOCAL_LIMIT;
+    
+    if (noteSize > targetLimit) {
+        const limitKB = (targetLimit / 1024).toFixed(1);
+        const currentKB = (noteSize / 1024).toFixed(1);
+        showToast(`Note too large (${currentKB}kb) for ${newStorageType} storage (limit: ${limitKB}kb)`, 'error');
+        
+        // Reset the toggle to previous state
+        const toggleCheckbox = document.querySelector('.storage-toggle-checkbox');
+        if (toggleCheckbox) {
+            toggleCheckbox.checked = oldStorageType === 'sync';
+        }
+        return;
+    }
+    
+    try {
+        // Remove from old storage
+        if (oldStorageType === 'sync') {
+            await new Promise((resolve) => {
+                chrome.storage.sync.remove([`dash-notes-${config.noteId}`], resolve);
+            });
+        } else {
+            await new Promise((resolve) => {
+                chrome.storage.local.remove([`dash-notes-${config.noteId}`], resolve);
+            });
+        }
+        
+        // Update storage type
+        notes[config.noteId].storageType = newStorageType;
+        
+        // Save to new storage
+        storage('update-notes');
+        
+        // Update UI
+        updateStorageToggle();
+        updateStorageIndicator();
+        
+        showToast(`Note moved to ${newStorageType} storage`, 'success');
+    } catch (error) {
+        showToast(`Error switching storage: ${error.message}`, 'error');
+        
+        // Reset the toggle to previous state
+        const toggleCheckbox = document.querySelector('.storage-toggle-checkbox');
+        if (toggleCheckbox) {
+            toggleCheckbox.checked = oldStorageType === 'sync';
+        }
+    }
+}
+
+/**
+ * Shows a toast notification
+ * @param {string} message - The message to display
+ * @param {string} type - The type of toast: 'success', 'error', or 'info'
+ * @param {number} duration - How long to show the toast in ms (default: 3000)
+ */
+function showToast(message, type = 'info', duration = 3000) {
+    const toastContainer = document.querySelector('#toast-container');
+    if (!toastContainer) return;
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    
+    toastContainer.appendChild(toast);
+    
+    // Trigger animation
+    setTimeout(() => toast.classList.add('show'), 10);
+    
+    // Remove toast after duration
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300); // Wait for fade out animation
+    }, duration);
+}
+
+/**
  * Copies the current note content to clipboard
  */
 function copyNoteToClipboard() {
@@ -1158,18 +1592,9 @@ function copyNoteToClipboard() {
     
     // Use the Clipboard API to copy the text
     navigator.clipboard.writeText(noteContent).then(() => {
-        // Visual feedback - show a temporary tooltip or flash the button
+        // Visual feedback - show toast notification
         const copyButton = document.querySelector('.copy-note-btn');
         if (copyButton) {
-            // Save the original title
-            const originalTitle = copyButton.title;
-            
-            // Change the title to show feedback
-            copyButton.title = 'Copied!';
-            
-            // Add a visual feedback class
-            copyButton.classList.add('copied');
-            
             // Add a brief animation effect
             copyButton.animate(
                 [
@@ -1182,14 +1607,12 @@ function copyNoteToClipboard() {
                     easing: 'ease-out' 
                 }
             );
-            
-            // Reset after 2 seconds
-            setTimeout(() => {
-                copyButton.title = originalTitle;
-                copyButton.classList.remove('copied');
-            }, 2000);
         }
+        
+        // Show success toast
+        showToast('Note copied to clipboard!', 'success', 2000);
     }).catch(err => {
         console.error('Failed to copy text: ', err);
+        showToast('Failed to copy note', 'error');
     });
 }
